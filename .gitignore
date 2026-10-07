@@ -1,0 +1,37 @@
+# Dependencies
+backend/vendor/
+backend/node_modules/
+backend/.env
+backend/storage/*.key
+
+# Build outputs
+backend/public/build/
+backend/public/hot/
+
+# Frontend
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.env
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Logs
+*.log
+backend/storage/logs/*.log
+
+# PHP
+backend/.phpunit.result.cache
+backend/.phpunit.cache
+
+# Local DB dumps
+*.sql
+!database/*.sql
+
+# Test artifacts
+/tmp/test*.png

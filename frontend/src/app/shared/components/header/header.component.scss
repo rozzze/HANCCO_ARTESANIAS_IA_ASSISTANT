@@ -1,0 +1,143 @@
+.header {
+  background: var(--color-white);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: var(--shadow-sm);
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem;
+  gap: 2rem;
+}
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-family: var(--font-display);
+  text-decoration: none;
+  color: var(--color-text);
+
+  .brand-mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--color-primary);
+    color: var(--color-white);
+    font-weight: 700;
+    font-size: 1.125rem;
+  }
+  .brand-name {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--color-text);
+  }
+  .brand-tag {
+    font-size: 0.875rem;
+    color: var(--color-text-muted);
+    font-style: italic;
+  }
+}
+
+.nav {
+  display: flex;
+  gap: 1.75rem;
+  flex: 1;
+  justify-content: center;
+
+  a {
+    color: var(--color-text);
+    font-weight: 500;
+    font-size: 0.9375rem;
+    padding: 0.5rem 0;
+    position: relative;
+    transition: color var(--transition);
+
+    &:hover { color: var(--color-primary); }
+    &.active {
+      color: var(--color-primary);
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: -4px;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: var(--color-primary);
+      }
+    }
+  }
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.cart-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--color-bg-alt);
+  color: var(--color-text);
+  font-size: 1.25rem;
+  transition: background var(--transition);
+
+  &:hover { background: var(--color-secondary); color: var(--color-white); }
+}
+
+.cart-badge {
+  position: absolute;
+  top: -4px;
+  right: -4px;
+  background: var(--color-accent);
+  color: var(--color-white);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  min-width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 4px;
+}
+
+.user-menu {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+
+  .user-name {
+    font-size: 0.875rem;
+    color: var(--color-text);
+    font-weight: 500;
+  }
+}
+
+.btn-sm {
+  padding: 0.5rem 1rem;
+  font-size: 0.875rem;
+}
+
+@media (max-width: 768px) {
+  .header-inner { gap: 1rem; padding: 0.875rem 1rem; }
+  .nav { gap: 1rem; }
+  .nav a { font-size: 0.8125rem; }
+  .brand-name { font-size: 1.25rem; }
+  .brand-tag { display: none; }
+  .user-name { display: none; }
+}

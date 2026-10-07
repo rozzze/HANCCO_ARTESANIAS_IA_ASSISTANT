@@ -1,0 +1,539 @@
+{
+  "info": {
+    "name": "Hancco Artesanias API",
+    "description": "Coleccion de endpoints para backend Laravel de Hancco Artesanias",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {"key": "base_url", "value": "http://127.0.0.1:8000/api"},
+    {"key": "admin_token", "value": ""},
+    {"key": "cliente_token", "value": ""},
+    {"key": "producto_id", "value": "1"},
+    {"key": "categoria_id", "value": "1"},
+    {"key": "imagen_id", "value": "1"},
+    {"key": "pedido_id", "value": "1"},
+    {"key": "detalle_id", "value": "1"},
+    {"key": "maniqui_slug", "value": "mujer-adulta"}
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [{"key": "token", "value": "{{admin_token}}", "type": "string"}]
+  },
+  "item": [
+    {
+      "name": "01 Auth",
+      "item": [
+        {
+          "name": "POST Register cliente",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/auth/register"},
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nombres\": \"Juan Perez\",\n  \"correo\": \"juan@test.com\",\n  \"contrasena\": \"juan12345\",\n  \"contrasena_confirmation\": \"juan12345\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Login admin",
+          "event": [
+            {"listen": "test", "script": {"exec": ["pm.collectionVariables.set('admin_token', pm.response.json().data.token);"], "type": "text/javascript"}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/auth/login"},
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"admin@hancco.com\",\n  \"contrasena\": \"admin1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST Login cliente",
+          "event": [
+            {"listen": "test", "script": {"exec": ["pm.collectionVariables.set('cliente_token', pm.response.json().data.token);"], "type": "text/javascript"}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Content-Type", "value": "application/json"}],
+            "url": {"raw": "{{base_url}}/auth/login"},
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"correo\": \"cliente@hancco.com\",\n  \"contrasena\": \"cliente1234\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Me (admin)",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/auth/me"}
+          }
+        },
+        {
+          "name": "POST Logout",
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/auth/logout"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "02 Publico - Catalog",
+      "item": [
+        {
+          "name": "GET Categorias",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/categorias"}}
+        },
+        {
+          "name": "GET Categoria por ID",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/categorias/{{categoria_id}}"}}
+        },
+        {
+          "name": "GET Productos (todos)",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/productos"}}
+        },
+        {
+          "name": "GET Productos (filtros)",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/productos?categoria_id=1&material=Alpaca&ordenar=precio_asc"}}
+        },
+        {
+          "name": "GET Producto por ID",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/productos/{{producto_id}}"}}
+        },
+        {
+          "name": "GET Maniquies",
+          "request": {"method": "GET", "url": {"raw": "{{base_url}}/maniquies"}}
+        }
+      ]
+    },
+    {
+      "name": "03 Cliente - Carrito",
+      "item": [
+        {
+          "name": "GET Mi carrito",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{cliente_token}}"}],
+            "url": {"raw": "{{base_url}}/carrito"}
+          }
+        },
+        {
+          "name": "POST Agregar item",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{cliente_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/carrito/items"},
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"producto_id\": {{producto_id}},\n  \"cantidad\": 2\n}"
+            }
+          }
+        },
+        {
+          "name": "PATCH Actualizar cantidad",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{cliente_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/carrito/items/{{detalle_id}}"},
+            "body": {"mode": "raw", "raw": "{\n  \"cantidad\": 3\n}"}
+          }
+        },
+        {
+          "name": "DELETE Eliminar item",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{cliente_token}}"}],
+            "url": {"raw": "{{base_url}}/carrito/items/{{detalle_id}}"}
+          }
+        },
+        {
+          "name": "DELETE Vaciar carrito",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{cliente_token}}"}],
+            "url": {"raw": "{{base_url}}/carrito"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "04 Cliente - Pedidos",
+      "item": [
+        {
+          "name": "POST Checkout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{cliente_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/pedidos/checkout"},
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"direccion_envio\": \"Av. Sol 123, Cusco\",\n  \"notas\": \"Entregar en horario de oficina\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET Mis pedidos",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{cliente_token}}"}],
+            "url": {"raw": "{{base_url}}/pedidos"}
+          }
+        },
+        {
+          "name": "GET Detalle pedido",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{cliente_token}}"}],
+            "url": {"raw": "{{base_url}}/pedidos/{{pedido_id}}"}
+          }
+        },
+        {
+          "name": "POST Registrar pago",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{cliente_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/pedidos/{{pedido_id}}/pago"},
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"metodo_pago\": \"yape\",\n  \"transaccion_id\": \"TX-998877\"\n}"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "05 Admin - Categorias",
+      "item": [
+        {
+          "name": "GET Listar",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/categorias"}
+          }
+        },
+        {
+          "name": "POST Crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/categorias"},
+            "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Bufandas\",\n  \"descripcion\": \"Bufandas grandes de alpaca\"\n}"}
+          }
+        },
+        {
+          "name": "GET Ver",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/categorias/{{categoria_id}}"}
+          }
+        },
+        {
+          "name": "PUT Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/categorias/{{categoria_id}}"},
+            "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Chompas Premium\",\n  \"activo\": true\n}"}
+          }
+        },
+        {
+          "name": "DELETE Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/categorias/{{categoria_id}}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "06 Admin - Maniquies",
+      "item": [
+        {
+          "name": "GET Listar",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/maniquies"}
+          }
+        },
+        {
+          "name": "POST Crear",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/maniquies"},
+            "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Bebe\",\n  \"url_referencia\": \"https://ejemplo.com/maniqui-bebe.png\"\n}"}
+          }
+        },
+        {
+          "name": "GET Ver",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/maniquies/1"}
+          }
+        },
+        {
+          "name": "PUT Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/maniquies/1"},
+            "body": {"mode": "raw", "raw": "{\n  \"nombre\": \"Mujer Adulta XL\",\n  \"url_referencia\": \"https://ejemplo.com/mujer-xl.png\",\n  \"activo\": true\n}"}
+          }
+        },
+        {
+          "name": "DELETE Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/maniquies/1"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "07 Admin - Productos",
+      "item": [
+        {
+          "name": "GET Listar",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/productos"}
+          }
+        },
+        {
+          "name": "POST Crear",
+          "event": [
+            {"listen": "test", "script": {"exec": ["pm.collectionVariables.set('producto_id', pm.response.json().data.id);"], "type": "text/javascript"}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/productos"},
+            "body": {"mode": "raw", "raw": "{\n  \"categoria_id\": 1,\n  \"nombre\": \"Chompa Alpaca Premium\",\n  \"material\": \"100% Alpaca Baby\",\n  \"talla\": \"L\",\n  \"color\": \"Marron\",\n  \"precio_venta\": 250.00,\n  \"stock_disponible\": 15,\n  \"descripcion_manual\": \"Chompa premium\"\n}"}
+          }
+        },
+        {
+          "name": "GET Ver",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/productos/{{producto_id}}"}
+          }
+        },
+        {
+          "name": "PUT Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/productos/{{producto_id}}"},
+            "body": {"mode": "raw", "raw": "{\n  \"categoria_id\": 1,\n  \"nombre\": \"Chompa Alpaca Premium V2\",\n  \"material\": \"100% Alpaca Baby\",\n  \"talla\": \"L\",\n  \"color\": \"Marron\",\n  \"precio_venta\": 280.00,\n  \"stock_disponible\": 20,\n  \"activo\": true\n}"}
+          }
+        },
+        {
+          "name": "PATCH Actualizar stock",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/productos/{{producto_id}}/stock"},
+            "body": {"mode": "raw", "raw": "{\n  \"stock_disponible\": 50,\n  \"operacion\": \"establecer\"\n}"}
+          }
+        },
+        {
+          "name": "DELETE Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/productos/{{producto_id}}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "08 Admin - Imagenes",
+      "item": [
+        {
+          "name": "GET Listar imagenes producto",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/productos/{{producto_id}}/imagenes"}
+          }
+        },
+        {
+          "name": "POST Subir imagen (form-data)",
+          "event": [
+            {"listen": "test", "script": {"exec": ["pm.collectionVariables.set('imagen_id', pm.response.json().data.id);"], "type": "text/javascript"}}
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/productos/{{producto_id}}/imagenes"},
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {"key": "imagen", "type": "file", "src": "/path/to/your/image.jpg"},
+                {"key": "es_principal", "value": "true", "type": "text"},
+                {"key": "orden", "value": "1", "type": "text"}
+              ]
+            }
+          }
+        },
+        {
+          "name": "GET Ver imagen",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/imagenes/{{imagen_id}}"}
+          }
+        },
+        {
+          "name": "PATCH Actualizar imagen",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/imagenes/{{imagen_id}}"},
+            "body": {"mode": "raw", "raw": "{\n  \"es_principal\": true,\n  \"orden\": 0\n}"}
+          }
+        },
+        {
+          "name": "POST Mejorar con IA (stub 501)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/imagenes/{{imagen_id}}/mejorar-ia"},
+            "body": {"mode": "raw", "raw": "{\n  \"maniqui_slug\": \"{{maniqui_slug}}\",\n  \"fondo\": \"estudio_blanco\"\n}"}
+          }
+        },
+        {
+          "name": "DELETE Eliminar imagen",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/imagenes/{{imagen_id}}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "09 Admin - Pedidos",
+      "item": [
+        {
+          "name": "GET Listar",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/pedidos"}}
+        },
+        {
+          "name": "GET Ver detalle",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/pedidos/{{pedido_id}}"}
+          }
+        },
+        {
+          "name": "PUT Actualizar estado",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/pedidos/{{pedido_id}}"},
+            "body": {"mode": "raw", "raw": "{\n  \"estado_pedido\": \"enviado\",\n  \"notas\": \"Numero de guia: 12345\"\n}"}
+          }
+        }
+      ]
+    },
+    {
+      "name": "10 Admin - Usuarios",
+      "item": [
+        {
+          "name": "GET Listar",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/usuarios"}}
+        },
+        {
+          "name": "GET Ver",
+          "request": {
+            "method": "GET",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/usuarios/2"}}
+        },
+        {
+          "name": "PUT Actualizar",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {"key": "Authorization", "value": "Bearer {{admin_token}}"},
+              {"key": "Content-Type", "value": "application/json"}
+            ],
+            "url": {"raw": "{{base_url}}/admin/usuarios/2"},
+            "body": {"mode": "raw", "raw": "{\n  \"nombres\": \"Cliente Demo Updated\",\n  \"rol\": \"cliente\"\n}"}
+          }
+        },
+        {
+          "name": "DELETE Eliminar",
+          "request": {
+            "method": "DELETE",
+            "header": [{"key": "Authorization", "value": "Bearer {{admin_token}}"}],
+            "url": {"raw": "{{base_url}}/admin/usuarios/2"}}
+        }
+      ]
+    }
+  ]
+}

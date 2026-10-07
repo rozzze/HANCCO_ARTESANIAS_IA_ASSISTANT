@@ -1,0 +1,659 @@
+\documentclass[12pt,a4paper]{article}
+
+% =====================================================
+% PAQUETES
+% =====================================================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{listings}
+
+% =====================================================
+% CABECERA Y PIE DE PAGINA
+% =====================================================
+\setlength{\headheight}{15pt}
+\setlength{\headsep}{10pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Sistema Web E-commerce con IA Sprint 5 -- Hancco Artesanías}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% =====================================================
+% FORMATO GENERAL
+% =====================================================
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\renewcommand{\arraystretch}{1.25}
+
+\newcolumntype{L}{>{\RaggedRight\arraybackslash}X}
+
+\titleformat{\section}
+{\normalfont\large\bfseries}{}{0em}{}
+
+\titleformat{\subsection}
+{\normalfont\normalsize\bfseries}{}{0em}{}
+
+\titlespacing*{\section}{0pt}{10pt}{6pt}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
+
+\lstset{
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    columns=fullflexible,
+    keepspaces=true
+}
+
+\begin{document}
+\thispagestyle{fancy}
+
+% =====================================================
+% HISTORIA DE USUARIO
+% =====================================================
+\section*{HISTORIA DE USUARIO SCRUM}
+
+\subsection*{HU-05 -- Sprint 5 -- Hancco Artesanías}
+
+\subsection*{Metadatos de la Historia}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Campo} & \textbf{Valor} \\
+\midrule
+Número & HU-05(SG-05) \\
+Nombre historia & Generación de Descripciones de Producto con IA \\
+Épica & Gestión de Contenido Multimedia y Catálogo con Inteligencia Artificial \\
+Usuario(Rol) & Administrador(Delia Hancco Lope) \\
+Sprint asignado & Sprint 5(semana del 28/09/2026 al 03/10/2026) \\
+Iteración asignada & 5 \\
+Prioridad en negocio & Alta \\
+Riesgo en desarrollo & Media \\
+Puntos estimados & 4(Fibonacci) \\
+Esfuerzo planificado & 18 horas-hombre \\
+Programador responsable & Miguel Isac Cutipa Hancco(Dev) \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Product Owner & Miguel Isac Cutipa Hancco \\
+Fecha de creación & 26/09/2026 \\
+Estado & En proceso \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% DESCRIPCION
+% =====================================================
+\subsection*{Descripción de la Historia}
+
+Como administrador del Sistema Web E-commerce Hancco Artesanías, quiero generar automáticamente la descripción comercial de un producto a partir de su imagen principal mediante inteligencia artificial, con la finalidad de redactar fichas de catálogo atractivas y coherentes sin dependencia de redacción manual, pudiendo revisar y editar el texto antes de publicarlo.
+
+\subsection*{Descripción extendida}
+
+En el formulario de edición del producto(\texttt{/admin/productos/:id/editar}) se incorpora el campo ``Descripción IA'' junto al botón ``Generar con IA''. Al presionarlo, el backend identifica la imagen marcada como principal(\texttt{es\_principal=1}) del producto, la descarga desde Cloudflare S3, la codifica en base64 y la envía al modelo de visión \texttt{gemini-flash-latest} de Google Gemini junto con un prompt de copywriter que incluye nombre, material y color del producto y exige un texto comercial en español de entre 60 y 120 palabras sin inventar precios ni tallas. El endpoint \texttt{POST /admin/productos/\{producto\}/generar-descripcion} devuelve únicamente el texto generado(HTTP 200), sin persistirlo: el frontend lo coloca en el campo editable ``Descripción IA'' para que el administrador lo revise, ajuste y recién entonces lo guarde mediante ``Actualizar producto'', momento en el que se persiste en el campo \texttt{descripcion\_ia} de la tabla \texttt{productos}. Si el producto aún no tiene imagen principal, el botón permanece deshabilitado con un enlace directo a la galería de imágenes. Los fallos de Gemini se responden con HTTP 502 incluyendo el detalle y se registran en el log de Laravel. La historia reutiliza la integración con Google Gemini, la configuración de credenciales y el mecanismo de manejo de errores habilitados en el Sprint 4(HU-04).
+
+% =====================================================
+% CRITERIOS DE ACEPTACION
+% =====================================================
+\subsection*{Criterios de Aceptación}
+
+\textbf{Escenario 1 -- Disponibilidad del botón(RF05.1)}\\
+Dado que el administrador edita un producto existente con imagen principal marcada,\\
+Cuando visualiza el bloque ``Descripción IA'',\\
+Entonces el sistema muestra el botón ``Generar con IA'' habilitado junto al campo de texto editable; si el producto no tiene imagen principal, el botón aparece deshabilitado con la leyenda indicativa y el enlace ``Gestionar imagenes''.
+
+\vspace{0.3em}
+
+\textbf{Escenario 2 -- Generación exitosa sin persistencia automática(RF05.2)}\\
+Dado que el administrador presiona ``Generar con IA'',\\
+Cuando el backend responde HTTP 200 con el texto generado,\\
+Entonces el sistema muestra un indicador de carga durante el proceso, coloca el texto en el campo ``Descripción IA'' y emite una notificación indicando que debe revisarse y guardarse; el texto solo se persiste al ejecutar ``Actualizar producto''.
+
+\vspace{0.3em}
+
+\textbf{Escenario 3 -- Calidad y formato del texto generado(RF05.3)}\\
+Dado que la imagen principal corresponde a una prenda del catálogo,\\
+Cuando se genera la descripción,\\
+Entonces el texto recibido está en español, tiene entre 60 y 120 palabras, destaca calidad, textura y origen artesanal, y no incluye precios, tallas ni datos no observables en la imagen.
+
+\vspace{0.3em}
+
+\textbf{Escenario 4 -- Manejo de errores(RF05.4)}\\
+Dado que la API de Gemini no responde o el producto carece de imagen principal,\\
+Cuando el administrador intenta generar la descripción,\\
+Entonces el sistema responde HTTP 422 o 502 con mensaje y detalle, registra el evento en el log y mantiene el campo ``Descripción IA'' con su contenido previo sin modificaciones.
+
+% =====================================================
+% REQUERIMIENTOS RUP
+% =====================================================
+\subsection*{REFERIDO A ESPECIFICACIONES DE REQUERIMIENTOS FUNCIONALES RUP}
+
+\textbf{Reglas de Negocio}
+
+RN-28: La generación de descripciones queda restringida a usuarios autenticados con rol de Administrador mediante token de Laravel Sanctum.
+
+RN-29: La generación utiliza exclusivamente la imagen marcada como principal(\texttt{es\_principal=1}); si el producto no la posee, el sistema responde HTTP 422.
+
+RN-30: El texto generado no se persiste automáticamente; requiere revisión o edición del administrador y guardado explícito del producto en el campo \texttt{descripcion\_ia}.
+
+RN-31: El prompt exige español, extensión de 60 a 120 palabras y prohibición de inventar precios, tallas o atributos no visibles; el modelo utilizado es \texttt{gemini-flash-latest}.
+
+% =====================================================
+% DATOS DE ENTRADA Y SALIDA
+% =====================================================
+\subsection*{Datos de Entrada y Salida}
+
+\textbf{Datos de entrada(Generación de descripción con IA)}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{3.2cm} p{2.8cm} p{1.8cm} L}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Obligatorio} & \textbf{Validación} \\
+\midrule
+\texttt{producto} (parámetro de ruta) & Numérico(FK) & Sí & Existencia válida en la tabla \texttt{productos} con imagen principal registrada. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Datos de salida(Respuesta exitosa de la API RESTful -- HTTP 200 OK)}
+
+Respuesta estructurada en formato JSON:
+
+\begin{lstlisting}
+{
+  "message": "Descripcion generada con IA.",
+  "data": {
+    "descripcion": "Elaborada con selecta fibra 100% alpaca en un elegante tono marron terroso, esta chompa captura la esencia viva de la tradicion artesanal de los Andes peruanos. Su textura sumamente suave y ligera brinda una calidez natural insuperable, ofreciendo un confort termico perfecto que te envuelve con totalidad."
+  }
+}
+\end{lstlisting}
+
+% =====================================================
+% MOCKUP
+% =====================================================
+\subsection*{Notas de UI/ Mockup}
+
+\begin{center}
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 1: FORMULARIO DE PRODUCTO CON BLOQUE ``DESCRIPCIÓN IA'', BOTÓN ``GENERAR CON IA'' Y TEXTO GENERADO EN EL CAMPO EDITABLE]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+
+\vspace{0.4cm}
+
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 2: BOTÓN DESHABILITADO CON LEYENDA ``SIN IMAGEN PRINCIPAL'' Y ENLACE ``GESTIONAR IMAGENES'' EN PRODUCTO SIN FOTOGRAFÍA MARCADA]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+\end{center}
+
+Notas: El bloque ``Descripción IA'' se ubica bajo ``Descripción manual'' en el formulario, con el botón alineado a la derecha de la etiqueta y estado de carga con spinner durante la generación. El campo permanece editable en todo momento para permitir ajustes antes del guardado, y convive con la descripción manual sin reemplazarla.
+
+% =====================================================
+% DEPENDENCIAS
+% =====================================================
+\subsection*{Dependencias}
+
+\textbf{Técnicas:} Integración con Google Gemini, configuración de credenciales y mecanismo de errores habilitados en el Sprint 4(HU-04); imagen principal del producto gestionada en la galería del Sprint 3(HU-03); campo \texttt{descripcion\_ia} existente en la tabla \texttt{productos} y validado en el backend desde el Sprint 2.
+
+\textbf{Negativas:} Ninguna; comparte servicio, configuración y manejo de errores con HU-04.
+
+\textbf{Historias posteriores:} SG-06(Visualización de catálogo) muestra la descripción generada en la ficha pública del producto.
+
+% =====================================================
+% TAREAS TECNICAS
+% =====================================================
+\subsection*{Tareas Técnicas(Sub-tareas)}
+
+{\small
+\begin{longtable}{p{1.2cm} p{7.9cm} p{4.2cm} p{1.7cm}}
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+T-35 & Implementar el servicio Gemini de descripción desde imagen(visión) con prompt de copywriter en español. & Cutipa Hancco Miguel Isac & 4 h \\
+T-36 & Implementar el endpoint de generación de descripción con descarga de la imagen principal y manejo de errores 422/502 con registro en log. & Cutipa Hancco Miguel Isac & 4 h \\
+T-37 & Integrar en Angular el campo ``Descripción IA'' y el botón ``Generar con IA'' con estado de carga, deshabilitado sin imagen principal y enlace a la galería. & Michelly Rocio Paja Quispe & 5 h \\
+T-38 & Ejecutar pruebas de integración del endpoint con Postman y verificar edición y guardado posterior del texto. & Cutipa Hancco Miguel Isac & 3 h \\
+T-39 & Consolidar evidencias del sprint y actualizar la documentación técnica del módulo de inteligencia artificial. & Michelly Rocio Paja Quispe & 2 h \\
+
+\midrule
+\multicolumn{3}{r}{\textbf{Total estimado}} & \textbf{18 h} \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Cuadro 5: Tareas técnicas -- HU-05/ SG-05
+\end{center}
+
+% =====================================================
+% RIESGOS
+% =====================================================
+\subsection*{Riesgos Identificados}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{1.2cm} p{4.6cm} L p{2cm}}
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Mitigación} & \textbf{Probabilidad} \\
+\midrule
+R-15 & Texto generado con datos inventados o tono inadecuado. & Prompt restrictivo sin precios ni tallas y revisión humana obligatoria antes del guardado. & Media \\
+R-16 & Producto sin imagen principal al solicitar la generación. & Botón deshabilitado con enlace a la galería y validación 422 en backend. & Baja \\
+R-17 & Agotamiento de créditos de Gemini compartido con la generación de imágenes. & Monitoreo del saldo prepagado y mensajes de error con detalle para reintentos controlados. & Baja \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% DIFICULTADES
+% =====================================================
+\subsection*{Dificultades}
+
+La principal dificultad consistió en delimitar la responsabilidad del texto generado: al no persistirse automáticamente, fue necesario sincronizar el campo \texttt{descripcion\_ia} entre la carga del formulario, la generación y el guardado, garantizando que el administrador nunca pierda una descripción editada manualmente por una generación accidental. Asimismo, la calidad del texto depende de la nitidez de la imagen principal, por lo que se documentó la recomendación de usar fotografías reales bien iluminadas.
+
+% =====================================================
+% OBSERVACIONES
+% =====================================================
+\subsection*{Observaciones}
+
+El texto generado complementa y no reemplaza a la descripción manual: ambos campos conviven en la ficha del producto y el catálogo público prioriza la descripción IA cuando existe. Al reutilizar la integración con Gemini del Sprint 4, el esfuerzo real de la historia resultó menor al de una integración nueva, lo que liberó capacidad para la consolidación de evidencias del módulo de inteligencia artificial.
+
+\subsection*{Firmas de Conformidad}
+
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{ccc}
+\rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} \\
+Miguel Isac Cutipa Hancco & Michelly Rocio Paja Quispe & Delia Hancco Lope \\
+Programador responsable & Scrum Master & Stakeholder/ Administradora
+\end{tabular}
+\end{center}
+
+\clearpage
+
+% =====================================================
+% ACTA DE SPRINT PLANNING
+% =====================================================
+\section*{ACTA DE REUNIÓN DE SPRINT PLANNING}
+
+\subsection*{No. SP-05 -- Sprint No. 5 -- Semana 5}
+
+\begin{center}
+Sistema Web E-commerce con Integración de Inteligencia Artificial para la Empresa Hancco Artesanías
+\end{center}
+
+% =====================================================
+% INFORMACION GENERAL
+% =====================================================
+\subsection*{Información General}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Campo} & \textbf{Descripción} \\
+\midrule
+Proyecto & Sistema Web E-commerce Hancco Artesanías \\
+Tipo de reunión & Sprint Planning(Reunión de planificación del Sprint) \\
+Sprint No. & 5(cinco) \\
+Duración del Sprint & 1 semana(del 28/09/2026 al 03/10/2026) \\
+Fecha de realización & 26 de septiembre de 2026 \\
+Hora de inicio & 12:00 horas \\
+Hora de cierre & 13:30 horas \\
+Lugar & Oficina de desarrollo proporcionada por Hancco Artesanías \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Product Owner & Miguel Isac Cutipa Hancco \\
+Equipo de desarrollo & -- Miguel Isac Cutipa Hancco (Product Owner/ Development Team)\newline -- Michelly Rocio Paja Quispe (Development Team) \\
+Metodología & Híbrida RUP-Scrum(Scrum con sprints semanales) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% ASISTENTES
+% =====================================================
+\subsection*{Asistentes}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c p{5.5cm} L c}
+\toprule
+\textbf{N°} & \textbf{Nombre y Apellido} & \textbf{Rol} & \textbf{Asistencia} \\
+\midrule
+1 & Miguel Isac Cutipa Hancco & Product Owner/ Development Team & Presente \\
+2 & Michelly Rocio Paja Quispe & Scrum Master/ Development Team & Presente \\
+3 & Delia Hancco Lope & Stakeholder & Presente \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% ORDEN DEL DIA
+% =====================================================
+\subsection*{Orden del Día}
+
+\begin{enumerate}
+    \item Revisión de los resultados obtenidos en el Sprint 4(Generación de Imágenes con IA).
+    \item Verificación del saldo de créditos de Google Gemini y del registro de trazabilidad \texttt{metadata\_ia}.
+    \item Revisión y ratificación del Product Backlog priorizado.
+    \item Selección de la historia de usuario para el Sprint 5 y formulación del Sprint Goal.
+    \item Estimación de esfuerzo, desglose técnico de actividades y consolidación del Sprint Backlog.
+    \item Actualización y ratificación del Definition of Done(DoD).
+    \item Análisis de impedimentos y riesgos asociados a la redacción automática con IA.
+    \item Asignación formal de compromisos y acuerdos para la iteración semanal.
+\end{enumerate}
+
+% =====================================================
+% OBJETIVO
+% =====================================================
+\subsection*{Objetivo de la Reunión}
+
+\textbf{Generación de Descripciones con IA:} Planificar y comprometer la implementación del asistente de redacción comercial que, a partir de la imagen principal del producto, genera una descripción en español editable por el administrador antes de su guardado(HU-05/ SG-05).
+
+\textbf{Sprint 5:} Establecer el compromiso formal del equipo de desarrollo para la ejecución de la quinta iteración semanal del proyecto conforme a la metodología híbrida RUP-Scrum.
+
+% =====================================================
+% DESARROLLO
+% =====================================================
+\subsection*{Desarrollo de la Reunión}
+
+\textbf{Cierre formal del Sprint 4 e inicio del Sprint 5}\\
+Con fecha 26 de septiembre de 2026, tras haber culminado con éxito la Sprint Review del Sprint 4 donde se demostró la composición prenda--maniquí con Google Gemini, el módulo de maniquíes por categoría y la regeneración con reemplazo, se da inicio formal a la planificación del Sprint 5 del proyecto ``Sistema Web E-commerce con Integración de Inteligencia Artificial para la Empresa Hancco Artesanías''.
+
+\textbf{Verificación de la integración con Google Gemini}\\
+El equipo presenta las evidencias del Sprint 4: imágenes compuestas almacenadas en Cloudflare S3 con insignia ``IA'' en la galería, registro de \texttt{metadata\_ia} con maniquí, imagen origen, modelo y fecha, y saldo de créditos prepagos vigente, confirmando que la misma integración puede extenderse a la modalidad de visión para texto requerida por SG-05.
+
+\textbf{Revisión de roles Scrum}\\
+Se ratifican los roles y responsabilidades del equipo de trabajo:
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{5cm} L}
+\toprule
+\textbf{Rol} & \textbf{Responsable} \\
+\midrule
+Product Owner & Miguel Isac Cutipa Hancco \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Equipo de Desarrollo & Miguel Isac Cutipa Hancco, Michelly Rocio Paja Quispe \\
+Stakeholders & Delia Hancco Lope \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Plan de comunicación y dinámica de trabajo}\\
+Se mantienen vigentes los acuerdos operativos establecidos en sprints anteriores:
+
+\begin{itemize}
+    \item Daily Scrum: Lunes a viernes a las 08:30 horas de manera virtual(15 minutos).
+    \item Sprint Review y Retrospective: Sábado 3 de octubre de 2026 a las 10:00 y 11:30 horas respectivamente.
+    \item Tablero de seguimiento: Actualización continua de estados en GitHub Projects(To Do, In Progress, Review, Done).
+    \item Control de versiones: Pull requests con revisión obligatoria antes de merge a la rama principal(main).
+\end{itemize}
+
+\textbf{Plataforma tecnológica y herramientas aplicadas al Sprint 5}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.8cm} L}
+\toprule
+\textbf{Categoría} & \textbf{Herramienta/ Tecnología} \\
+\midrule
+Frontend & Angular(TypeScript, signals, componentes standalone, HttpClient) \\
+Backend & Laravel(PHP, Eloquent ORM, HTTP Client, Filesystem/ Flysystem S3) \\
+Inteligencia Artificial & Google Gemini API(\texttt{gemini-flash-latest}, modalidad visión) \\
+Base de Datos & MySQL(Tablas \texttt{productos}, \texttt{imagenes}) \\
+Almacenamiento multimedia & Cloudflare S3(R2) \\
+Control de Versiones & Git+ GitHub \\
+Pruebas de API & Postman y curl \\
+IDE de desarrollo & Visual Studio Code \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% PRODUCT BACKLOG
+% =====================================================
+\subsection*{Product Backlog priorizado}
+
+El Product Owner y el equipo revisaron el estado del Product Backlog, ratificando el progreso del sistema:
+
+{\small
+\begin{longtable}{p{1.2cm} p{6.8cm} p{1.6cm} p{1.8cm} p{1.4cm} p{2.2cm}}
+\toprule
+\textbf{ID} & \textbf{Historia de Usuario} & \textbf{Prioridad} & \textbf{Esfuerzo} & \textbf{Sprint} & \textbf{Estado} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Historia de Usuario} & \textbf{Prioridad} & \textbf{Esfuerzo} & \textbf{Sprint} & \textbf{Estado} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+SG-01 & Autenticación del administrador & Alta & 3 pts & 1 & Completado \\
+SG-02 & Gestión de inventario & Alta & 5 pts & 2 & Completado \\
+SG-03 & Almacenamiento multimedia(Cloudflare S3) & Alta & 4 pts & 3 & Completado \\
+SG-04 & Generación de imágenes con IA & Alta & 5 pts & 4 & Completado \\
+SG-05 & Generación de descripciones con IA & Alta & 4 pts & 5 & En proceso \\
+SG-06 & Visualización de catálogo & Alta & 4 pts & 6 & Pendiente \\
+SG-07 & Gestión de carrito de compras & Alta & 5 pts & 7 & Pendiente \\
+SG-08 & Gestión de pagos & Alta & 5 pts & 8 & Pendiente \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Tabla 5: Seguimiento del Product Backlog -- Sistema Web E-commerce Hancco Artesanías
+\end{center}
+
+% =====================================================
+% SELECCION
+% =====================================================
+\subsection*{Selección de historias para el Sprint 5}
+
+Para la presente iteración se selecciona de forma unánime la historia de usuario:
+
+SG-05 -- Generación de Descripciones con IA: ``Como administrador, quiero generar automáticamente la descripción comercial de un producto a partir de su imagen principal mediante inteligencia artificial, pudiendo revisarla y editarla antes de publicarla.''
+
+Justificación de selección: La redacción asistida elimina el cuello de botella de contenido textual del catálogo y aprovecha la integración con Google Gemini ya operativa desde el Sprint 4, con riesgo técnico bajo y alto valor para la ficha pública del producto del Sprint 6.
+
+% =====================================================
+% SPRINT GOAL
+% =====================================================
+\subsection*{Sprint Goal}
+
+\begin{quote}
+Sprint Goal(Meta del Sprint 5): ``Implementar la generación de descripciones comerciales con inteligencia artificial del Sistema Web E-commerce Hancco Artesanías, permitiendo al administrador obtener un texto en español a partir de la imagen principal del producto mediante Google Gemini, revisarlo y editarlo en el formulario antes de guardarlo en el campo \texttt{descripcion\_ia}, dejando operativo el asistente de redacción al término de la semana.''
+\end{quote}
+
+% =====================================================
+% SPRINT BACKLOG
+% =====================================================
+\subsection*{Sprint Backlog}
+
+El Sprint Backlog acordado para dar cumplimiento a la meta del sprint se detalla a continuación:
+
+{\small
+\begin{longtable}{p{1.2cm} p{7.9cm} p{4.2cm} p{1.7cm}}
+\toprule
+\textbf{Tarea} & \textbf{Descripción} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Tarea} & \textbf{Descripción} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+T-35 & Implementar el servicio Gemini de descripción desde imagen(visión) con prompt de copywriter en español. & Cutipa Hancco Miguel Isac & 4 h \\
+T-36 & Implementar el endpoint de generación de descripción con descarga de la imagen principal y manejo de errores 422/502 con registro en log. & Cutipa Hancco Miguel Isac & 4 h \\
+T-37 & Integrar en Angular el campo ``Descripción IA'' y el botón ``Generar con IA'' con estado de carga, deshabilitado sin imagen principal y enlace a la galería. & Michelly Rocio Paja Quispe & 5 h \\
+T-38 & Ejecutar pruebas de integración del endpoint con Postman y verificar edición y guardado posterior del texto. & Cutipa Hancco Miguel Isac & 3 h \\
+T-39 & Consolidar evidencias del sprint y actualizar la documentación técnica del módulo de inteligencia artificial. & Michelly Rocio Paja Quispe & 2 h \\
+
+\midrule
+\multicolumn{3}{r}{\textbf{Total horas estimadas}} & \textbf{18 h} \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Tabla 6: Sprint Backlog -- Sprint 5(SG-05)
+\end{center}
+
+% =====================================================
+% ESTIMACION
+% =====================================================
+\subsection*{Estimación de esfuerzo y capacidad}
+
+Story points SG-05: 4 puntos(escala Fibonacci).
+
+Esfuerzo planificado: 18 horas-hombre distribuidas en 5 días hábiles.
+
+Capacidad del equipo: 2 integrantes × 4 horas/día × 5 días = 40 horas disponibles.
+
+Se cuenta con un margen de holgura de 22 horas, deliberadamente amplio al reutilizar la integración con Gemini del Sprint 4; el excedente se destinará a soporte de la retrospectiva y preparación de evidencias del módulo de inteligencia artificial.
+
+% =====================================================
+% DEFINITION OF DONE
+% =====================================================
+\subsection*{Definition of Done(DoD)}
+
+Se ratifican y amplían los criterios que debe satisfacer la historia para declararse completada:
+
+\begin{enumerate}
+    \item El código fuente está completamente implementado y fusionado a la rama de desarrollo en GitHub sin advertencias ni conflictos.
+    \item El endpoint de generación responde HTTP 200 con texto válido y HTTP 422 o 502 con detalle ante productos sin imagen principal o fallos de Gemini.
+    \item La descripción generada está en español, tiene entre 60 y 120 palabras y no incluye precios ni tallas inventados.
+    \item El texto generado se muestra editable en el campo ``Descripción IA'' y solo se persiste en \texttt{descripcion\_ia} tras el guardado explícito del producto.
+    \item El botón permanece deshabilitado con enlace a la galería cuando el producto carece de imagen principal.
+    \item Los fallos de generación quedan registrados en el log del backend sin alterar el contenido previo del campo.
+    \item Los criterios de aceptación de la historia fueron validados de forma conjunta con el Product Owner y la Administradora.
+    \item No existen defectos críticos abiertos ni bloqueos en las pruebas funcionales.
+\end{enumerate}
+
+% =====================================================
+% IMPEDIMENTOS
+% =====================================================
+\subsection*{Impedimentos y riesgos identificados}
+
+Riesgo: Texto generado con atributos inventados o tono inconsistente con la marca.\\
+Acción mitigadora: Prompt restrictivo que prohíbe precios y tallas, exigencia de enfoque artesanal y revisión humana obligatoria antes del guardado.
+
+Impedimento potencial: Productos del catálogo sin imagen principal marcada, lo que impediría la generación.\\
+Acción mitigadora: Botón deshabilitado con enlace directo a la galería y validación 422 con mensaje explicativo en el backend.
+
+Impedimento potencial: Consumo compartido de créditos de Gemini con la generación de imágenes del Sprint 4.\\
+Acción mitigadora: Monitoreo del saldo prepagado, reintentos controlados y mensajes de error con detalle técnico.
+
+% =====================================================
+% ACUERDOS
+% =====================================================
+\subsection*{Acuerdos}
+
+\begin{itemize}
+    \item El equipo se compromete a entregar al cierre del Sprint 5 el asistente de generación de descripciones con IA plenamente funcional, integrado al formulario de producto y conectado a Google Gemini en modalidad visión.
+    \item Las reuniones Daily Scrum se mantendrán a las 08:30 horas vía Google Meet de lunes a viernes.
+    \item La Sprint Review se llevará a cabo el sábado 3 de octubre de 2026 a las 10:00 horas con la presencia de la Sra. Delia Hancco.
+\end{itemize}
+
+% =====================================================
+% COMPROMISOS
+% =====================================================
+\subsection*{Compromisos}
+
+{\small
+\begin{longtable}{c p{7.8cm} p{4.2cm} p{2.0cm}}
+\toprule
+\textbf{N°} & \textbf{Compromiso} & \textbf{Responsable} & \textbf{Fecha límite} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{N°} & \textbf{Compromiso} & \textbf{Responsable} & \textbf{Fecha límite} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+C-18 & Entregar el servicio Gemini de descripción desde imagen y el endpoint con manejo de errores y log. & Miguel Isac Cutipa Hancco & 29/09/2026 \\
+C-19 & Entregar el campo ``Descripción IA'' y el botón ``Generar con IA'' en el formulario de Angular con estados de carga y deshabilitado. & Michelly Rocio Paja Quispe & 30/09/2026 \\
+C-20 & Ejecutar las pruebas de integración del endpoint y verificar el guardado editado del texto. & Miguel Isac Cutipa Hancco & 01/10/2026 \\
+C-21 & Realizar la Sprint Review y la Retrospectiva del Sprint 5. & Michelly Rocio Paja Quispe & 03/10/2026 \\
+
+\end{longtable}
+}
+
+% =====================================================
+% PROXIMA REUNION
+% =====================================================
+\subsection*{Próxima Reunión}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Detalle} & \textbf{Descripción} \\
+\midrule
+Tipo de reunión & Daily Scrum(Lunes 28/09/2026 -- 08:30 horas) \\
+Sprint Review No. 05 & Sábado 03/10/2026 -- 10:00 horas \\
+Sprint Retrospective No. 05 & Sábado 03/10/2026 -- 11:30 horas \\
+Sprint Planning No. 06 & Sábado 03/10/2026 -- 12:00 horas \\
+Lugar & Oficina de desarrollo proporcionada por Hancco Artesanías \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% FIRMAS ACTA
+% =====================================================
+\subsection*{Firmas de Conformidad}
+
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{ccc}
+\rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} \\
+Miguel Isac Cutipa Hancco & Michelly Rocio Paja Quispe & Delia Hancco Lope \\
+Product Owner/ Development Team & Scrum Master/ Development Team & Stakeholder/ Administradora
+\end{tabular}
+\end{center}
+
+\end{document}

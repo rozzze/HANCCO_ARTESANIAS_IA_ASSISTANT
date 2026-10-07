@@ -1,0 +1,712 @@
+\documentclass[12pt,a4paper]{article}
+
+% =====================================================
+% PAQUETES
+% =====================================================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{listings}
+
+% =====================================================
+% CABECERA Y PIE DE PAGINA
+% =====================================================
+\setlength{\headheight}{15pt}
+\setlength{\headsep}{10pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Sistema Web E-commerce con IA Sprint 4 -- Hancco Artesanías}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% =====================================================
+% FORMATO GENERAL
+% =====================================================
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\renewcommand{\arraystretch}{1.25}
+
+\newcolumntype{L}{>{\RaggedRight\arraybackslash}X}
+
+\titleformat{\section}
+{\normalfont\large\bfseries}{}{0em}{}
+
+\titleformat{\subsection}
+{\normalfont\normalsize\bfseries}{}{0em}{}
+
+\titlespacing*{\section}{0pt}{10pt}{6pt}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
+
+\lstset{
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    columns=fullflexible,
+    keepspaces=true
+}
+
+\begin{document}
+\thispagestyle{fancy}
+
+% =====================================================
+% HISTORIA DE USUARIO
+% =====================================================
+\section*{HISTORIA DE USUARIO SCRUM}
+
+\subsection*{HU-04 -- Sprint 4 -- Hancco Artesanías}
+
+\subsection*{Metadatos de la Historia}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Campo} & \textbf{Valor} \\
+\midrule
+Número & HU-04(SG-04) \\
+Nombre historia & Generación de Imágenes con IA(Composición Prenda--Maniquí) \\
+Épica & Gestión de Contenido Multimedia y Catálogo con Inteligencia Artificial \\
+Usuario(Rol) & Administrador(Delia Hancco Lope) \\
+Sprint asignado & Sprint 4(semana del 21/09/2026 al 26/09/2026) \\
+Iteración asignada & 4 \\
+Prioridad en negocio & Alta \\
+Riesgo en desarrollo & Alta \\
+Puntos estimados & 5(Fibonacci) \\
+Esfuerzo planificado & 28 horas-hombre \\
+Programador responsable & Miguel Isac Cutipa Hancco(Dev) \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Product Owner & Miguel Isac Cutipa Hancco \\
+Fecha de creación & 19/09/2026 \\
+Estado & En proceso \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% DESCRIPCION
+% =====================================================
+\subsection*{Descripción de la Historia}
+
+Como administrador del Sistema Web E-commerce Hancco Artesanías, quiero generar imágenes profesionales de los productos mediante inteligencia artificial combinando la fotografía real de la prenda con un maniquí vacío seleccionado, con la finalidad de obtener imágenes de catálogo con presentación comercial sin sesiones fotográficas adicionales, aprovechando los activos visuales almacenados en Cloudflare S3 durante el Sprint 3.
+
+\subsection*{Descripción extendida}
+
+La historia comprende dos módulos reales ya operativos en el sistema. El primero es el \textbf{módulo de Maniquíes} (\texttt{/admin/maniquies}), accesible desde el menú lateral del panel administrativo en el grupo ``Catálogo'', donde el administrador registra maniquíes vacíos(imagen base sin prenda) mediante carga de archivo JPG, PNG o WEBP de hasta 10 MB que se almacena en Cloudflare S3 bajo la ruta \texttt{maniquies/\{slug\}/\{uuid\}.\{ext\}}. Cada maniquí se clasifica por categoría del catálogo(por ejemplo maniquíes distintos para chullos y para chompas) o se marca como ``General''(categoría nula) para servir a cualquier categoría, y cuenta con estado activo/inactivo, edición, eliminación(con remoción del objeto en el bucket) y filtro por categoría en la vista de tarjetas.
+
+El segundo es el \textbf{flujo de generación con IA}, integrado a la galería multimedia del Sprint 3 (\texttt{/admin/productos/:id/imagenes}). Cada tarjeta de fotografía real ofrece el botón ``Generar con IA'', que abre un modal donde se visualiza la prenda origen y una cuadrícula de miniaturas con los maniquíes vacíos disponibles, filtrados por la categoría del producto más los generales; los maniquíes sin imagen cargada aparecen deshabilitados con la leyenda ``Sin imagen''. Al seleccionar un maniquí y presionar ``Generar'', el backend descarga la prenda y el maniquí desde Cloudflare S3, los convierte a base64 y los envía como dos imágenes embebidas junto con un prompt de composición al modelo \texttt{gemini-2.5-flash-image} de Google Gemini; el PNG resultante se almacena en \texttt{productos/\{slug\}/imagenes\_ia/\{uuid\}.png} y se registra en la tabla \texttt{imagenes} con \texttt{generada\_ia=1} y \texttt{metadata\_ia} con el maniquí usado, la imagen origen, el modelo y la fecha. La respuesta HTTP es 201 y la nueva tarjeta aparece en la galería con insignia ``IA''. Si el resultado no satisface al administrador, el botón ``Regenerar'' vuelve a ejecutar la composición reemplazando la imagen IA anterior del mismo par prenda--maniquí, manteniendo un único resultado vigente. Todo el módulo está protegido por token de Laravel Sanctum y rol administrador, y los errores de Gemini se responden con HTTP 502 incluyendo el detalle y se registran en el log de Laravel.
+
+% =====================================================
+% CRITERIOS DE ACEPTACION
+% =====================================================
+\subsection*{Criterios de Aceptación}
+
+\textbf{Escenario 1 -- Registro de maniquíes vacíos por categoría(RF04.1)}\\
+Dado que el administrador se encuentra en el módulo Maniquíes(\texttt{/admin/maniquies}),\\
+Cuando presiona ``Nuevo maniqui'', selecciona una fotografía del maniquí vacío, indica nombre, categoría(o General), descripción y estado, y confirma,\\
+Entonces el sistema valida el archivo(JPG, PNG o WEBP, máximo 10 MB), lo almacena en Cloudflare S3 con nombre único, registra la URL pública y muestra la tarjeta del maniquí con su imagen visible, insignia de categoría o ``General'' y su estado; si la URL no llegara a cargar, la tarjeta muestra el marcador ``Sin imagen''.
+
+\vspace{0.3em}
+
+\textbf{Escenario 2 -- Selección de maniquí en la generación(RF04.2)}\\
+Dado que el administrador abre ``Generar con IA'' desde una fotografía real de un producto,\\
+Cuando el modal se despliega,\\
+Entonces el sistema muestra la prenda origen y únicamente los maniquíes activos de la categoría del producto más los generales, con miniatura y nombre; los maniquíes sin imagen cargada aparecen deshabilitados con la leyenda ``Sin imagen'' y no pueden seleccionarse.
+
+\vspace{0.3em}
+
+\textbf{Escenario 3 -- Generación exitosa de la imagen compuesta(RF04.3)}\\
+Dado que el administrador seleccionó un maniquí válido en el modal de generación,\\
+Cuando presiona ``Generar'',\\
+Entonces el sistema compone la prenda sobre el maniquí mediante Google Gemini, almacena el PNG resultante en Cloudflare S3 bajo \texttt{imagenes\_ia}, crea el registro en \texttt{imagenes} con \texttt{generada\_ia=1} y \texttt{metadata\_ia} con maniquí, imagen origen, modelo y fecha, responde HTTP 201, muestra el resultado en el modal y agrega la tarjeta con insignia ``IA'' a la galería del producto.
+
+\vspace{0.3em}
+
+\textbf{Escenario 4 -- Regeneración con reemplazo(RF04.4)}\\
+Dado que el administrador obtuvo un resultado que no le satisface,\\
+Cuando presiona ``Regenerar'',\\
+Entonces el sistema ejecuta nuevamente la composición, elimina la imagen IA anterior del mismo par prenda--maniquí(del bucket y de la base de datos) y presenta un único resultado nuevo, evitando acumulaciones de variantes obsoletas.
+
+\vspace{0.3em}
+
+\textbf{Escenario 5 -- Validaciones y errores de la generación(RF04.5)}\\
+Dado que el administrador intenta generar una imagen,\\
+Cuando el maniquí seleccionado no tiene imagen cargada, no existe o está inactivo, o la API de Gemini falla(cuota, clave o tiempo de espera),\\
+Entonces el sistema responde HTTP 422 o 502 con un mensaje claro y el detalle técnico, registra el evento en el log de Laravel y mantiene la galería sin cambios parciales.
+
+\vspace{0.3em}
+
+\textbf{Nota sobre la consulta de imágenes:} La verificación de disponibilidad del recurso(visualización de la imagen en tamaño original, su URL pública de Cloudflare S3, copiado de la URL y confirmación de accesibilidad) se realiza desde el visor integrado en la galería del Sprint 3, y aplica tanto a fotografías reales como a imágenes generadas por IA.
+
+% =====================================================
+% REQUERIMIENTOS RUP
+% =====================================================
+\subsection*{REFERIDO A ESPECIFICACIONES DE REQUERIMIENTOS FUNCIONALES RUP}
+
+\textbf{Reglas de Negocio}
+
+RN-20: Las operaciones del módulo de maniquíes y la generación de imágenes con IA quedan restringidas a usuarios autenticados con rol de Administrador(\texttt{rol='admin'}) mediante token de Laravel Sanctum.
+
+RN-21: Toda generación requiere una imagen origen real(\texttt{generada\_ia=0}) del producto y un maniquí activo con imagen cargada; de lo contrario el sistema responde HTTP 422 con mensaje explicativo.
+
+RN-22: Los maniquíes ofrecidos en el modal de generación se filtran por la categoría del producto e incluyen los maniquíes ``General''(categoría nula).
+
+RN-23: Cada imagen generada se registra con \texttt{generada\_ia=1} y \texttt{metadata\_ia} en formato JSON con \texttt{maniqui\_id}, \texttt{maniqui\_slug}, \texttt{origen\_imagen\_id}, \texttt{modelo} y \texttt{fecha\_generacion}, garantizando trazabilidad.
+
+RN-24: La regeneración reemplaza la imagen IA anterior del mismo par prenda--maniquí, eliminando el objeto del bucket y su registro, de modo que exista un único resultado vigente por combinación.
+
+RN-25: Las imágenes generadas se almacenan en Cloudflare S3 bajo \texttt{productos/\{slug\}/imagenes\_ia/} y los maniquíes bajo \texttt{maniquies/\{slug\}/}, siempre con identificador único(UUID) para evitar sobreescrituras.
+
+RN-26: La eliminación de un maniquí remueve su objeto del bucket; la eliminación de un producto no deja imágenes IA huérfanas referenciadas en la base de datos.
+
+RN-27: Los fallos de la API de Gemini se responden con HTTP 502 incluyendo el campo \texttt{detalle} y se registran en el log del backend; ningún fallo deja archivos huérfanos ni registros inconsistentes.
+
+% =====================================================
+% DATOS DE ENTRADA Y SALIDA
+% =====================================================
+\subsection*{Datos de Entrada y Salida}
+
+\textbf{Datos de entrada(Generación de imagen con IA)}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{3.2cm} p{2.8cm} p{1.8cm} L}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Obligatorio} & \textbf{Validación} \\
+\midrule
+\texttt{imagen} (parámetro de ruta) & Numérico(FK) & Sí & Imagen real existente en la tabla \texttt{imagenes} del producto. \\
+\texttt{maniqui\_id} & Numérico(FK) & Sí & Existencia válida en la tabla \texttt{maniquies}; el maniquí debe estar activo y con imagen cargada. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Datos de salida(Respuesta exitosa de la API RESTful -- HTTP 201 Created)}
+
+Respuesta estructurada en formato JSON:
+
+\begin{lstlisting}
+{
+  "message": "Imagen generada con IA.",
+  "data": {
+    "id": 12,
+    "producto_id": 3,
+    "url_cloudflare_s3": "https://pub-995a9c3435824f32be793fc7273acbbe.r2.dev/productos/chompa-andina/imagenes_ia/4c1f8a2e-9b3d-4e6a-8f70-1d2c3b4a5e6f.png",
+    "generada_ia": true,
+    "es_principal": false,
+    "orden": 3,
+    "metadata_ia": {
+      "maniqui_id": 2,
+      "maniqui_slug": "hombre-adulto",
+      "origen_imagen_id": 9,
+      "modelo": "gemini-2.5-flash-image",
+      "fecha_generacion": "2026-09-23T10:15:00-05:00"
+    }
+  }
+}
+\end{lstlisting}
+
+% =====================================================
+% MOCKUP
+% =====================================================
+\subsection*{Notas de UI/ Mockup}
+
+\begin{center}
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 1: MÓDULO MANIQUÍES \texttt{/admin/maniquies} CON CUADRÍCULA DE TARJETAS, INSIGNIAS DE CATEGORÍA Y MODAL DE SUBIDA CON VISTA PREVIA]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+
+\vspace{0.4cm}
+
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 2: MODAL ``GENERAR CON IA'' CON PRENDA ORIGEN, CUADRÍCULA DE MANIQUÍES SELECCIONABLES Y RESULTADO COMPUESTO CON BOTONES REGENERAR / CERRAR]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+
+\vspace{0.4cm}
+
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 3: GALERÍA DEL PRODUCTO CON TARJETA GENERADA POR IA, INSIGNIA ``IA'' Y VISOR DE URL PÚBLICA]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+\end{center}
+
+Notas: El módulo de maniquíes presenta tarjetas con proporción vertical, insignia de categoría o ``General'', estado inactivo atenuado y acciones Editar / Desactivar / Eliminar. El modal de generación muestra la prenda origen, la cuadrícula de maniquíes con borde resaltado al seleccionar, y el resultado en tamaño completo con acciones ``Regenerar'' y ``Cerrar''. Se mantienen los componentes standalone de Angular con signals y la estética del panel administrativo definida en el Sprint 3.
+
+% =====================================================
+% DEPENDENCIAS
+% =====================================================
+\subsection*{Dependencias}
+
+\textbf{Técnicas:} Galería multimedia y almacenamiento Cloudflare S3 del Sprint 3(HU-03), tabla \texttt{imagenes} con campos \texttt{generada\_ia} y \texttt{metadata\_ia}, migración de \texttt{categoria\_id} en la tabla \texttt{maniquies}, autenticación Laravel Sanctum del Sprint 1 y configuración de credenciales de Google Gemini(\texttt{GEMINI\_API\_KEY}, \texttt{GEMINI\_MODEL\_IMAGE}, \texttt{GEMINI\_TIMEOUT}) con créditos prepagos activos.
+
+\textbf{Negativas:} Ninguna; el módulo consume directamente los servicios de almacenamiento y autenticación ya operativos.
+
+\textbf{Historias posteriores:} SG-06(Visualización de catálogo) consume las imágenes generadas como contenido visual del catálogo público; SG-05(Generación de descripciones con IA, Sprint 5) reutiliza la misma integración con Gemini en su modalidad de visión.
+
+% =====================================================
+% TAREAS TECNICAS
+% =====================================================
+\subsection*{Tareas Técnicas(Sub-tareas)}
+
+{\small
+\begin{longtable}{p{1.2cm} p{7.9cm} p{4.2cm} p{1.7cm}}
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+T-27 & Diseñar migración de \texttt{categoria\_id} en \texttt{maniquies} y relación Eloquent con categorías. & Cutipa Hancco Miguel Isac & 2 h \\
+T-28 & Extender el servicio de Cloudflare S3 con carga de maniquíes y lectura de bytes por URL pública. & Cutipa Hancco Miguel Isac & 2 h \\
+T-29 & Implementar CRUD de maniquíes con carga multipart, filtros por categoría y eliminación del objeto en el bucket. & Cutipa Hancco Miguel Isac & 4 h \\
+T-30 & Maquetar en Angular el módulo Maniquíes(ruta, menú lateral, cuadrícula de tarjetas y modal de subida con vista previa). & Michelly Rocio Paja Quispe & 5 h \\
+T-31 & Implementar el servicio Gemini de composición de imágenes(dos imágenes embebidas y prompt de vestido de maniquí). & Cutipa Hancco Miguel Isac & 3 h \\
+T-32 & Implementar el servicio de mejora de imágenes: descarga de prenda y maniquí, composición, carga del resultado, reemplazo de IA anterior y registro de \texttt{metadata\_ia}. & Cutipa Hancco Miguel Isac & 5 h \\
+T-33 & Rediseñar el modal de generación en Angular: maniquíes por categoría, selección, generación, regeneración y preview. & Michelly Rocio Paja Quispe & 5 h \\
+T-34 & Ejecutar pruebas de integración de la generación con Postman y curl, verificando respuesta 201, objeto en el bucket y trazabilidad. & Cutipa Hancco Miguel Isac & 2 h \\
+
+\midrule
+\multicolumn{3}{r}{\textbf{Total estimado}} & \textbf{28 h} \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Cuadro 4: Tareas técnicas -- HU-04/ SG-04
+\end{center}
+
+% =====================================================
+% RIESGOS
+% =====================================================
+\subsection*{Riesgos Identificados}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{1.2cm} p{4.6cm} L p{2cm}}
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Mitigación} & \textbf{Probabilidad} \\
+\midrule
+R-11 & Clave de Google Gemini sin créditos o con cuota agotada(HTTP 402/429). & Activar créditos prepagos antes del sprint, verificar la clave con una llamada de prueba y mostrar mensajes claros al administrador. & Media \\
+R-12 & Composición generada poco fiel a la prenda original. & Prompt iterativo que exige preservar diseño, color y textura; botón ``Regenerar'' para obtener alternativas. & Media \\
+R-13 & Selección de maniquí sin imagen cargada o inactivo. & Validación 422 en backend y miniaturas deshabilitadas con leyenda ``Sin imagen'' en el frontend. & Baja \\
+R-14 & Latencia de generación superior al tiempo de espera del navegador. & Tiempo de espera configurable de 120 segundos, indicador de carga en el modal y errores detallados en log. & Media \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% DIFICULTADES
+% =====================================================
+\subsection*{Dificultades}
+
+Durante la implementación se identificó que las claves nuevas de Google Gemini no incluyen generación de imágenes sin créditos prepagos activos(política de 2025), y que varios alias de modelo quedaron deprecados para cuentas nuevas, requiriendo usar \texttt{gemini-flash-latest} para texto y \texttt{gemini-2.5-flash-image} para composición. Asimismo, la singularización automática del recurso \texttt{maniquies} en Laravel generaba un parámetro de ruta incorrecto que impedía el enlace implícito del modelo, resolviéndose con la declaración explícita del nombre de parámetro en el recurso de rutas.
+
+% =====================================================
+% OBSERVACIONES
+% =====================================================
+\subsection*{Observaciones}
+
+El campo \texttt{metadata\_ia} constituye la bitácora técnica de cada generación y permitirá auditorías futuras de costo y calidad por modelo. La política de resultado único por par prenda--maniquí simplifica la galería y evita acumulación de variantes. La integración con Gemini habilitada en esta historia servirá de base para la generación de descripciones con IA(SG-05), planificada para el Sprint 5, que reutilizará el mismo servicio, configuración y mecanismo de errores.
+
+\subsection*{Firmas de Conformidad}
+
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{ccc}
+\rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} \\
+Miguel Isac Cutipa Hancco & Michelly Rocio Paja Quispe & Delia Hancco Lope \\
+Programador responsable & Scrum Master & Stakeholder/ Administradora
+\end{tabular}
+\end{center}
+
+\clearpage
+
+% =====================================================
+% ACTA DE SPRINT PLANNING
+% =====================================================
+\section*{ACTA DE REUNIÓN DE SPRINT PLANNING}
+
+\subsection*{No. SP-04 -- Sprint No. 4 -- Semana 4}
+
+\begin{center}
+Sistema Web E-commerce con Integración de Inteligencia Artificial para la Empresa Hancco Artesanías
+\end{center}
+
+% =====================================================
+% INFORMACION GENERAL
+% =====================================================
+\subsection*{Información General}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Campo} & \textbf{Descripción} \\
+\midrule
+Proyecto & Sistema Web E-commerce Hancco Artesanías \\
+Tipo de reunión & Sprint Planning(Reunión de planificación del Sprint) \\
+Sprint No. & 4(cuatro) \\
+Duración del Sprint & 1 semana(del 21/09/2026 al 26/09/2026) \\
+Fecha de realización & 19 de septiembre de 2026 \\
+Hora de inicio & 12:00 horas \\
+Hora de cierre & 13:45 horas \\
+Lugar & Oficina de desarrollo proporcionada por Hancco Artesanías \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Product Owner & Miguel Isac Cutipa Hancco \\
+Equipo de desarrollo & -- Miguel Isac Cutipa Hancco (Product Owner/ Development Team)\newline -- Michelly Rocio Paja Quispe (Development Team) \\
+Metodología & Híbrida RUP-Scrum(Scrum con sprints semanales) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% ASISTENTES
+% =====================================================
+\subsection*{Asistentes}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c p{5.5cm} L c}
+\toprule
+\textbf{N°} & \textbf{Nombre y Apellido} & \textbf{Rol} & \textbf{Asistencia} \\
+\midrule
+1 & Miguel Isac Cutipa Hancco & Product Owner/ Development Team & Presente \\
+2 & Michelly Rocio Paja Quispe & Scrum Master/ Development Team & Presente \\
+3 & Delia Hancco Lope & Stakeholder & Presente \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% ORDEN DEL DIA
+% =====================================================
+\subsection*{Orden del Día}
+
+\begin{enumerate}
+    \item Revisión de los resultados obtenidos en el Sprint 3(Gestión de Almacenamiento Multimedia).
+    \item Verificación de la clave de Google Gemini con créditos prepagos activos y prueba de generación de imágenes.
+    \item Revisión y ratificación del Product Backlog priorizado.
+    \item Selección de la historia de usuario para el Sprint 4 y formulación del Sprint Goal.
+    \item Estimación de esfuerzo, desglose técnico de actividades y consolidación del Sprint Backlog.
+    \item Actualización y ratificación del Definition of Done(DoD).
+    \item Análisis de impedimentos y riesgos asociados a la API de Google Gemini.
+    \item Asignación formal de compromisos y acuerdos para la iteración semanal.
+\end{enumerate}
+
+% =====================================================
+% OBJETIVO
+% =====================================================
+\subsection*{Objetivo de la Reunión}
+
+\textbf{Generación de Imágenes con IA:} Planificar y comprometer la implementación del módulo de maniquíes vacíos y del flujo de composición prenda--maniquí mediante Google Gemini(HU-04/ SG-04), integrado a la galería multimedia del Sprint 3.
+
+\textbf{Sprint 4:} Establecer el compromiso formal del equipo de desarrollo para la ejecución de la cuarta iteración semanal del proyecto conforme a la metodología híbrida RUP-Scrum.
+
+% =====================================================
+% DESARROLLO
+% =====================================================
+\subsection*{Desarrollo de la Reunión}
+
+\textbf{Cierre formal del Sprint 3 e inicio del Sprint 4}\\
+Con fecha 19 de septiembre de 2026, tras haber culminado con éxito la Sprint Review del Sprint 3 donde se constató el funcionamiento de la galería multimedia por producto, la carga de archivos a Cloudflare S3 y su visualización mediante URL pública, se da inicio formal a la planificación del Sprint 4 del proyecto ``Sistema Web E-commerce con Integración de Inteligencia Artificial para la Empresa Hancco Artesanías''.
+
+\textbf{Verificación de la integración con Google Gemini}\\
+El equipo de desarrollo presenta la evidencia de la clave de API con créditos prepagos activos: llamada de generación de texto con respuesta HTTP 200 y llamada de generación de imagen con retorno de un PNG válido, confirmando la viabilidad técnica de SG-04 para el presente sprint.
+
+\textbf{Revisión de roles Scrum}\\
+Se ratifican los roles y responsabilidades del equipo de trabajo:
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{5cm} L}
+\toprule
+\textbf{Rol} & \textbf{Responsable} \\
+\midrule
+Product Owner & Miguel Isac Cutipa Hancco \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Equipo de Desarrollo & Miguel Isac Cutipa Hancco, Michelly Rocio Paja Quispe \\
+Stakeholders & Delia Hancco Lope \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Plan de comunicación y dinámica de trabajo}\\
+Se mantienen vigentes los acuerdos operativos establecidos en sprints anteriores:
+
+\begin{itemize}
+    \item Daily Scrum: Lunes a viernes a las 08:30 horas de manera virtual(15 minutos).
+    \item Sprint Review y Retrospective: Sábado 26 de septiembre de 2026 a las 10:00 y 11:30 horas respectivamente.
+    \item Tablero de seguimiento: Actualización continua de estados en GitHub Projects(To Do, In Progress, Review, Done).
+    \item Control de versiones: Pull requests con revisión obligatoria antes de merge a la rama principal(main).
+\end{itemize}
+
+\textbf{Plataforma tecnológica y herramientas aplicadas al Sprint 4}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.8cm} L}
+\toprule
+\textbf{Categoría} & \textbf{Herramienta/ Tecnología} \\
+\midrule
+Frontend & Angular(TypeScript, signals, componentes standalone, HttpClient, FormData) \\
+Backend & Laravel(PHP, Eloquent ORM, Filesystem/ Flysystem S3, HTTP Client) \\
+Inteligencia Artificial & Google Gemini API(\texttt{gemini-2.5-flash-image}) \\
+Base de Datos & MySQL(Tablas \texttt{imagenes}, \texttt{maniquies}, \texttt{productos}) \\
+Almacenamiento multimedia & Cloudflare S3(R2) \\
+Control de Versiones & Git+ GitHub \\
+Pruebas de API & Postman y curl \\
+IDE de desarrollo & Visual Studio Code \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% PRODUCT BACKLOG
+% =====================================================
+\subsection*{Product Backlog priorizado}
+
+El Product Owner y el equipo revisaron el estado del Product Backlog, ratificando el progreso del sistema:
+
+{\small
+\begin{longtable}{p{1.2cm} p{6.8cm} p{1.6cm} p{1.8cm} p{1.4cm} p{2.2cm}}
+\toprule
+\textbf{ID} & \textbf{Historia de Usuario} & \textbf{Prioridad} & \textbf{Esfuerzo} & \textbf{Sprint} & \textbf{Estado} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Historia de Usuario} & \textbf{Prioridad} & \textbf{Esfuerzo} & \textbf{Sprint} & \textbf{Estado} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+SG-01 & Autenticación del administrador & Alta & 3 pts & 1 & Completado \\
+SG-02 & Gestión de inventario & Alta & 5 pts & 2 & Completado \\
+SG-03 & Almacenamiento multimedia(Cloudflare S3) & Alta & 4 pts & 3 & Completado \\
+SG-04 & Generación de imágenes con IA & Alta & 5 pts & 4 & En proceso \\
+SG-05 & Generación de descripciones con IA & Alta & 4 pts & 5 & Pendiente \\
+SG-06 & Visualización de catálogo & Alta & 4 pts & 6 & Pendiente \\
+SG-07 & Gestión de carrito de compras & Alta & 5 pts & 7 & Pendiente \\
+SG-08 & Gestión de pagos & Alta & 5 pts & 8 & Pendiente \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Tabla 3: Seguimiento del Product Backlog -- Sistema Web E-commerce Hancco Artesanías
+\end{center}
+
+% =====================================================
+% SELECCION
+% =====================================================
+\subsection*{Selección de historias para el Sprint 4}
+
+Para la presente iteración se selecciona de forma unánime la historia de usuario:
+
+SG-04 -- Generación de Imágenes con IA: ``Como administrador, quiero generar imágenes profesionales de los productos combinando la fotografía real de la prenda con un maniquí vacío seleccionado, mediante inteligencia artificial.''
+
+Justificación de selección: La composición prenda--maniquí constituye el diferencial visual del catálogo y consume directamente los activos almacenados en el Sprint 3. Su implementación habilita además la integración con Google Gemini que el Sprint 5 aprovechará para la generación de descripciones comerciales.
+
+% =====================================================
+% SPRINT GOAL
+% =====================================================
+\subsection*{Sprint Goal}
+
+\begin{quote}
+Sprint Goal(Meta del Sprint 4): ``Implementar la generación de imágenes con inteligencia artificial del Sistema Web E-commerce Hancco Artesanías, permitiendo al administrador registrar maniquíes vacíos por categoría y componer imágenes profesionales de cada producto combinando su fotografía real con el maniquí seleccionado mediante Google Gemini, con opción de regeneración y trazabilidad en Cloudflare S3, dejando operativa la generación visual al término de la semana.''
+\end{quote}
+
+% =====================================================
+% SPRINT BACKLOG
+% =====================================================
+\subsection*{Sprint Backlog}
+
+El Sprint Backlog acordado para dar cumplimiento a la meta del sprint se detalla a continuación:
+
+{\small
+\begin{longtable}{p{1.2cm} p{7.9cm} p{4.2cm} p{1.7cm}}
+\toprule
+\textbf{Tarea} & \textbf{Descripción} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Tarea} & \textbf{Descripción} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+T-27 & Diseñar migración de \texttt{categoria\_id} en \texttt{maniquies} y relación Eloquent con categorías. & Cutipa Hancco Miguel Isac & 2 h \\
+T-28 & Extender el servicio de Cloudflare S3 con carga de maniquíes y lectura de bytes por URL pública. & Cutipa Hancco Miguel Isac & 2 h \\
+T-29 & Implementar CRUD de maniquíes con carga multipart, filtros por categoría y eliminación del objeto en el bucket. & Cutipa Hancco Miguel Isac & 4 h \\
+T-30 & Maquetar en Angular el módulo Maniquíes(ruta, menú lateral, cuadrícula de tarjetas y modal de subida con vista previa). & Michelly Rocio Paja Quispe & 5 h \\
+T-31 & Implementar el servicio Gemini de composición de imágenes(dos imágenes embebidas y prompt de vestido de maniquí). & Cutipa Hancco Miguel Isac & 3 h \\
+T-32 & Implementar el servicio de mejora de imágenes: descarga de prenda y maniquí, composición, carga del resultado, reemplazo de IA anterior y registro de \texttt{metadata\_ia}. & Cutipa Hancco Miguel Isac & 5 h \\
+T-33 & Rediseñar el modal de generación en Angular: maniquíes por categoría, selección, generación, regeneración y preview. & Michelly Rocio Paja Quispe & 5 h \\
+T-34 & Ejecutar pruebas de integración de la generación con Postman y curl, verificando respuesta 201, objeto en el bucket y trazabilidad. & Cutipa Hancco Miguel Isac & 2 h \\
+
+\midrule
+\multicolumn{3}{r}{\textbf{Total horas estimadas}} & \textbf{28 h} \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Tabla 4: Sprint Backlog -- Sprint 4(SG-04)
+\end{center}
+
+% =====================================================
+% ESTIMACION
+% =====================================================
+\subsection*{Estimación de esfuerzo y capacidad}
+
+Story points SG-04: 5 puntos(escala Fibonacci).
+
+Esfuerzo planificado: 28 horas-hombre distribuidas en 5 días hábiles.
+
+Capacidad del equipo: 2 integrantes × 4 horas/día × 5 días = 40 horas disponibles.
+
+Se cuenta con un margen de holgura de 12 horas para imprevistos técnicos, complementado con la experiencia de integración obtenida en la verificación previa de la clave de Gemini.
+
+% =====================================================
+% DEFINITION OF DONE
+% =====================================================
+\subsection*{Definition of Done(DoD)}
+
+Se ratifican y amplían los criterios que debe satisfacer la historia para declararse completada:
+
+\begin{enumerate}
+    \item El código fuente está completamente implementado y fusionado a la rama de desarrollo en GitHub sin advertencias ni conflictos.
+    \item Las migraciones de base de datos corren limpiamente y mantienen integridad referencial verificada.
+    \item Los endpoints de generación de la API RESTful han sido validados con Postman respondiendo con los códigos de estado HTTP pertinentes(201, 422, 502).
+    \item La generación de prueba produce un PNG compuesto almacenado en Cloudflare S3 cuya URL se visualiza en la galería del producto con insignia ``IA''.
+    \item La regeneración reemplaza la imagen IA anterior del mismo par prenda--maniquí sin dejar objetos huérfanos en el bucket.
+    \item El módulo de maniquíes permite cargar, categorizar, activar, editar y eliminar maniquíes vacíos con imagen visible en el panel.
+    \item Los errores de la API de Gemini se presentan con mensaje claro al administrador y quedan registrados en el log del backend.
+    \item Los criterios de aceptación de la historia fueron validados de forma conjunta con el Product Owner y la Administradora.
+    \item No existen defectos críticos abiertos ni bloqueos en las pruebas funcionales.
+\end{enumerate}
+
+% =====================================================
+% IMPEDIMENTOS
+% =====================================================
+\subsection*{Impedimentos y riesgos identificados}
+
+Riesgo: Política de Google que excluye la generación de imágenes en claves nuevas sin créditos prepagos, y deprecación de alias de modelo para cuentas recientes.\\
+Acción mitigadora: Activar créditos prepagos antes del inicio del sprint, verificar la clave con llamadas de prueba de texto e imagen y fijar los modelos vigentes en la configuración del backend.
+
+Impedimento potencial: Latencia variable de la generación de imágenes(10 a 60 segundos) que podría percibirse como falla en la interfaz.\\
+Acción mitigadora: Indicador de carga en el modal, tiempo de espera configurable de 120 segundos y mensajes de error con detalle técnico.
+
+Impedimento potencial: Composiciones poco fieles a la prenda original en ciertos ángulos o texturas.\\
+Acción mitigadora: Prompt que exige preservar diseño, color y textura, y botón ``Regenerar'' con reemplazo del resultado anterior.
+
+% =====================================================
+% ACUERDOS
+% =====================================================
+\subsection*{Acuerdos}
+
+\begin{itemize}
+    \item El equipo se compromete a entregar al cierre del Sprint 4 el módulo de maniquíes y la generación de imágenes con IA plenamente funcionales, integrados a la galería multimedia y conectados a Cloudflare S3 y Google Gemini.
+    \item Las reuniones Daily Scrum se mantendrán a las 08:30 horas vía Google Meet de lunes a viernes.
+    \item La Sprint Review se llevará a cabo el sábado 26 de septiembre de 2026 a las 10:00 horas con la presencia de la Sra. Delia Hancco.
+\end{itemize}
+
+% =====================================================
+% COMPROMISOS
+% =====================================================
+\subsection*{Compromisos}
+
+{\small
+\begin{longtable}{c p{7.8cm} p{4.2cm} p{2.0cm}}
+\toprule
+\textbf{N°} & \textbf{Compromiso} & \textbf{Responsable} & \textbf{Fecha límite} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{N°} & \textbf{Compromiso} & \textbf{Responsable} & \textbf{Fecha límite} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+C-14 & Entregar el módulo de maniquíes(migración, CRUD multipart y vista de tarjetas con categorías). & Miguel Isac Cutipa Hancco & 22/09/2026 \\
+C-15 & Entregar la integración del servicio Gemini de composición y el endpoint de generación con reemplazo y trazabilidad. & Miguel Isac Cutipa Hancco & 23/09/2026 \\
+C-16 & Entregar el modal de generación y el módulo Maniquíes en Angular con selección por categoría y regeneración. & Michelly Rocio Paja Quispe & 24/09/2026 \\
+C-17 & Ejecutar las pruebas de integración del sprint y realizar la Sprint Review y Retrospectiva. & Michelly Rocio Paja Quispe & 26/09/2026 \\
+
+\end{longtable}
+}
+
+% =====================================================
+% PROXIMA REUNION
+% =====================================================
+\subsection*{Próxima Reunión}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Detalle} & \textbf{Descripción} \\
+\midrule
+Tipo de reunión & Daily Scrum(Lunes 21/09/2026 -- 08:30 horas) \\
+Sprint Review No. 04 & Sábado 26/09/2026 -- 10:00 horas \\
+Sprint Retrospective No. 04 & Sábado 26/09/2026 -- 11:30 horas \\
+Sprint Planning No. 05 & Sábado 26/09/2026 -- 12:00 horas \\
+Lugar & Oficina de desarrollo proporcionada por Hancco Artesanías \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% FIRMAS ACTA
+% =====================================================
+\subsection*{Firmas de Conformidad}
+
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{ccc}
+\rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} \\
+Miguel Isac Cutipa Hancco & Michelly Rocio Paja Quispe & Delia Hancco Lope \\
+Product Owner/ Development Team & Scrum Master/ Development Team & Stakeholder/ Administradora
+\end{tabular}
+\end{center}
+
+\end{document}
