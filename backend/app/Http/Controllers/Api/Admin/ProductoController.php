@@ -219,12 +219,14 @@ class ProductoController extends Controller
             $resultado = $this->r2->moverCarpeta($slugAnterior, $slugNuevo);
             $movidos = $resultado['movidos'] ?? 0;
         } catch (\Throwable $e) {
-            \Log::warning('No se pudo migrar carpeta R2 al renombrar producto', [
+            \Log::warning('No se pudo migrar carpeta R2 al renombrar producto; URLs no actualizadas para evitar desincronizacion', [
                 'producto_id' => $producto->id,
                 'slug_anterior' => $slugAnterior,
                 'slug_nuevo' => $slugNuevo,
                 'error' => $e->getMessage(),
             ]);
+
+            return;
         }
 
         foreach ($producto->imagenes()->get() as $imagen) {

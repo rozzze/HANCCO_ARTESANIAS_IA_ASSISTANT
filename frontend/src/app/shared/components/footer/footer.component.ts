@@ -1,18 +1,23 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-footer',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [RouterLink],
   template: `
     <footer class="footer">
+      <div class="footer-accent" aria-hidden="true"></div>
       <div class="container">
         <div class="grid">
-          <div>
-            <h3 class="brand">Hancco Artesanias</h3>
+          <div class="footer-brand">
+            <div class="brand-row">
+              <span class="brand-mark">H</span>
+              <span class="brand-name">Hancco Artesanias</span>
+            </div>
             <p class="text-muted">
-              Prendas de fibra de alpaca tejidas a mano con tecnicas tradicionales andinas.
+              Ropa tradicional de todo tipo, confeccionada con telas de calidad en Arequipa.
             </p>
           </div>
 
@@ -27,10 +32,10 @@ import { RouterLink } from '@angular/router';
 
           <div>
             <h4>Contacto</h4>
-            <ul>
-              <li>contacto&#64;hancco.com</li>
-              <li>+51 999 888 777</li>
-              <li>Cusco, Peru</li>
+            <ul class="contact-list">
+              <li><span class="ci" aria-hidden="true">&#9993;</span> contacto&#64;hancco.com</li>
+              <li><span class="ci" aria-hidden="true">&#9742;</span> +51 999 888 777</li>
+              <li><span class="ci" aria-hidden="true">&#128205;</span> Arequipa, Peru &mdash; a pasos de la Plaza de Armas</li>
             </ul>
           </div>
         </div>

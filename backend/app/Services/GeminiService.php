@@ -79,10 +79,10 @@ class GeminiService
         ]))->implode(', ');
 
         return implode(' ', [
-            'Eres copywriter de una tienda de artesanias peruanas en fibra de alpaca.',
+            'Eres copywriter de una tienda de artesanias peruanas.',
             'Observa la imagen del producto "'.$nombre.'"'.($detalles !== '' ? ' ('.$detalles.')' : '').'.',
             'Redacta una descripcion comercial atractiva en espanol de 2 a 3 frases (entre 60 y 120 palabras).',
-            'Destaca la calidad, la textura, la calidez y el origen artesanal andino.',
+            'Destaca la calidad, la textura, la calidez, el color y el origen artesanal andino.',
             'No inventes precios, tallas ni datos que no sean visibles.',
             'Devuelve unicamente el texto de la descripcion, sin titulos ni comillas.',
         ]);

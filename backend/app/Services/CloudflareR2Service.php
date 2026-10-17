@@ -35,6 +35,25 @@ class CloudflareR2Service
         ];
     }
 
+    public function subirComprobante(UploadedFile $archivo, int $pedidoId): array
+    {
+        $extension = $archivo->getClientOriginalExtension() ?: $archivo->extension();
+        $nombreArchivo = Str::uuid().'.'.$extension;
+        $ruta = 'comprobantes/'.$pedidoId.'/'.$nombreArchivo;
+
+        $contenido = file_get_contents($archivo->getRealPath());
+
+        Storage::disk($this->disk)->put($ruta, $contenido, [
+            'visibility' => 'public',
+            'ContentType' => $archivo->getMimeType(),
+        ]);
+
+        return [
+            'ruta' => $ruta,
+            'url' => $this->obtenerUrlPublica($ruta),
+        ];
+    }
+
     public function subir(UploadedFile $archivo, string $slugProducto, string $tipo = self::TIPO_FOTO_REAL): array
     {
         $extension = $archivo->getClientOriginalExtension() ?: $archivo->extension();
@@ -138,7 +157,7 @@ class CloudflareR2Service
         $disk = Storage::disk($this->disk);
         $prefijoViejo = 'productos/'.$slugViejo.'/';
 
-        $archivos = $disk->files($prefijoViejo);
+        $archivos = $disk->allFiles($prefijoViejo);
         if (empty($archivos)) {
             return ['movidos' => 0, 'urls' => []];
         }

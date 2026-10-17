@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ManiquiService, Maniqui, ManiquiDatos } from '../../../core/services/maniqui.service';
@@ -9,6 +9,7 @@ import { Categoria } from '../../../core/models/categoria.model';
 @Component({
   selector: 'app-maniqui-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="page">

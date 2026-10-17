@@ -9,5 +9,6 @@ export interface Pago {
   monto: number;
   fecha_pago: string | null;
   estado_pago: EstadoPago;
+  comprobante_url: string | null;
   metadata: any | null;
 }

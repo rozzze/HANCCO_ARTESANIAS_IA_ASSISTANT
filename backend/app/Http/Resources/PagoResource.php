@@ -17,6 +17,7 @@ class PagoResource extends JsonResource
             'monto' => (float) $this->monto,
             'fecha_pago' => $this->fecha_pago?->toISOString(),
             'estado_pago' => $this->estado_pago,
+            'comprobante_url' => $this->comprobante_url,
             'metadata' => $this->metadata,
         ];
     }

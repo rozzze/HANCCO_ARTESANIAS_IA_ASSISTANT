@@ -12,7 +12,7 @@ class PedidoController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $query = Pedido::with(['cliente', 'detalles.producto', 'pago']);
+        $query = Pedido::with(['cliente', 'detalles.producto.imagenes', 'pago']);
 
         if ($request->filled('estado_pedido')) {
             $query->where('estado_pedido', $request->string('estado_pedido'));
@@ -20,6 +20,20 @@ class PedidoController extends Controller
 
         if ($request->filled('cliente_id')) {
             $query->where('cliente_id', $request->integer('cliente_id'));
+        }
+
+        if ($request->filled('buscar')) {
+            $buscar = $request->string('buscar')->trim()->toString();
+            $like = '%'.$buscar.'%';
+            $query->where(function ($w) use ($buscar, $like) {
+                if (ctype_digit($buscar)) {
+                    $w->where('pedidos.id', (int) $buscar);
+                }
+                $w->orWhereHas('cliente', function ($c) use ($like) {
+                    $c->where('nombres', 'like', $like)
+                        ->orWhere('correo', 'like', $like);
+                });
+            });
         }
 
         if ($request->filled('desde')) {
@@ -35,6 +49,12 @@ class PedidoController extends Controller
 
         return response()->json([
             'data' => PedidoResource::collection($pedidos),
+            'meta' => [
+                'current_page' => $pedidos->currentPage(),
+                'last_page' => $pedidos->lastPage(),
+                'per_page' => $pedidos->perPage(),
+                'total' => $pedidos->total(),
+            ],
         ]);
     }
 
@@ -42,7 +62,7 @@ class PedidoController extends Controller
     {
         return response()->json([
             'data' => new PedidoResource(
-                $pedido->load(['cliente', 'detalles.producto', 'pago'])
+                $pedido->load(['cliente', 'detalles.producto.imagenes', 'pago'])
             ),
         ]);
     }
@@ -69,10 +89,17 @@ class PedidoController extends Controller
 
         $pedido->update($data);
 
+        if ($data['estado_pedido'] === 'pagado' && $pedido->pago && $pedido->pago->estado_pago !== 'completado') {
+            $pedido->pago->update([
+                'estado_pago' => 'completado',
+                'fecha_pago' => now(),
+            ]);
+        }
+
         return response()->json([
             'message' => 'Estado del pedido actualizado.',
             'data' => new PedidoResource(
-                $pedido->fresh()->load(['cliente', 'detalles.producto', 'pago'])
+                $pedido->fresh()->load(['cliente', 'detalles.producto.imagenes', 'pago'])
             ),
         ]);
     }

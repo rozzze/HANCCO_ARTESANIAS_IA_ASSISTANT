@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsuarioService } from '../../../core/services/usuario.service';
@@ -8,6 +8,7 @@ import { Usuario } from '../../../core/models/usuario.model';
 @Component({
   selector: 'app-usuario-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="page">
@@ -34,23 +35,25 @@ import { Usuario } from '../../../core/models/usuario.model';
                 <th>Nombre</th>
                 <th>Correo</th>
                 <th>Rol</th>
-                <th>Acciones</th>
+                <th class="th-actions">Acciones</th>
               </tr>
             </thead>
             <tbody>
               @for (u of usuarios(); track u.id) {
                 <tr>
-                  <td>{{ u.id }}</td>
-                  <td><strong>{{ u.nombres }}</strong></td>
-                  <td>{{ u.correo }}</td>
-                  <td>
+                  <td data-label="ID">{{ u.id }}</td>
+                  <td data-label="Nombre"><strong>{{ u.nombres }}</strong></td>
+                  <td data-label="Correo" class="cell-correo">{{ u.correo }}</td>
+                  <td data-label="Rol">
                     <select [ngModel]="u.rol" (ngModelChange)="cambiarRol(u, $event)" class="form-control select-sm">
                       <option value="cliente">Cliente</option>
                       <option value="admin">Admin</option>
                     </select>
                   </td>
-                  <td>
-                    <button class="btn-icon danger" (click)="eliminar(u)">🗑️</button>
+                  <td class="actions">
+                    <div class="actions-row">
+                      <button type="button" class="btn-icon danger" (click)="eliminar(u)" title="Eliminar" aria-label="Eliminar usuario">🗑️</button>
+                    </div>
                   </td>
                 </tr>
               }

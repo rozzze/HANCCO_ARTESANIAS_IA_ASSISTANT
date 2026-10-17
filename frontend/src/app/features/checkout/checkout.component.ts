@@ -1,13 +1,11 @@
-import { Component, OnInit, inject, signal, computed } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { CarritoService } from '../../core/services/carrito.service';
-import { CheckoutService, MetodoPago, CulqiCuota } from '../../core/services/checkout.service';
-import { CulqiService } from '../../core/services/culqi.service';
+import { CheckoutService } from '../../core/services/checkout.service';
 import { PedidoService } from '../../core/services/pedido.service';
 import { PagoService, MetodoPagoId } from '../../core/services/pago.service';
-import { Carrito, DetalleCarrito } from '../../core/models/carrito.model';
 import { Pedido } from '../../core/models/pedido.model';
 
 type Paso = 1 | 2 | 3 | 4;
@@ -15,6 +13,7 @@ type Paso = 1 | 2 | 3 | 4;
 @Component({
   selector: 'app-checkout',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="container page">
@@ -52,21 +51,22 @@ type Paso = 1 | 2 | 3 | 4;
                   </div>
                   <div class="form-group">
                     <label class="form-label">Ciudad</label>
-                    <input [(ngModel)]="direccion.ciudad" class="form-control" placeholder="Cusco" required>
+                    <input [(ngModel)]="direccion.ciudad" class="form-control" placeholder="Arequipa" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Codigo postal</label>
-                    <input [(ngModel)]="direccion.cp" class="form-control" placeholder="08000">
+                    <input [(ngModel)]="direccion.cp" class="form-control" placeholder="04000">
                   </div>
                   <div class="form-group">
-                    <label class="form-label">Telefono</label>
-                    <input [(ngModel)]="direccion.telefono" class="form-control" placeholder="+51 999888777" required>
+                    <label class="form-label">Telefono / WhatsApp *</label>
+                    <input [(ngModel)]="direccion.telefono" class="form-control" placeholder="999888777" required>
                   </div>
                   <div class="form-group">
                     <label class="form-label">Referencia</label>
                     <input [(ngModel)]="direccion.referencia" class="form-control" placeholder="Cerca de...">
                   </div>
                 </div>
+                <p class="text-muted small">Usamos tu telefono para coordinar el envio por WhatsApp.</p>
                 <div class="step-actions">
                   <button class="btn btn-primary" (click)="irPaso(2)" [disabled]="!direccionValida()">Continuar al pago →</button>
                 </div>
@@ -93,17 +93,44 @@ type Paso = 1 | 2 | 3 | 4;
                     }
                   </div>
 
-                  @if (metodoSeleccionado() === 'tarjeta' && !culqiActivo()) {
+                  @if (metodoSeleccionado() === 'yape') {
+                    <div class="yape-panel">
+                      <h4>Yapea el total: <strong class="yape-total">S/ {{ carrito()?.total | number:'1.2-2' }}</strong></h4>
+                      @if (yapeQr()) {
+                        <img [src]="yapeQr()" alt="QR Yape" class="yape-qr">
+                      }
+                      <div class="yape-numero">
+                        <span class="text-muted small">Numero Yape:</span>
+                        <strong>{{ yapeNumero() }}</strong>
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="copiarYape()">
+                          {{ yapeCopiado() ? '✓ Copiado' : '⧉ Copiar' }}
+                        </button>
+                      </div>
+                      <p class="text-muted small">
+                        Haz el yape por el monto exacto y sube la captura como comprobante. Verificamos tu pago y coordinamos el envio.
+                      </p>
+                      <div class="comprobante-row">
+                        <input type="file" accept="image/*" #compInput hidden (change)="onComprobante($event)">
+                        <button type="button" class="btn btn-secondary btn-sm" (click)="compInput.click()">📎 Subir comprobante</button>
+                        @if (comprobante()) {
+                          <span class="comp-ok">✓ {{ comprobante()!.name }}</span>
+                        } @else {
+                          <span class="text-muted small">Obligatorio para Yape</span>
+                        }
+                      </div>
+                    </div>
+                  }
+
+                  @if (metodoSeleccionado() === 'contraentrega') {
                     <div class="alert alert-info mt-2">
-                      ℹ️ Culqi no configurado en backend. Puedes elegir contraentrega o Yape.
-                      Configura CULQI_PUBLIC_KEY y CULQI_SECRET_KEY en backend/.env para activar pagos con tarjeta.
+                      🚚 Pagas en efectivo al recibir tu pedido. Ten listo el monto exacto: S/ {{ carrito()?.total | number:'1.2-2' }}
                     </div>
                   }
                 }
 
                 <div class="step-actions">
                   <button class="btn btn-secondary" (click)="irPaso(1)">← Volver</button>
-                  <button class="btn btn-primary" (click)="irPaso(3)" [disabled]="!metodoSeleccionado()">Revisar pedido →</button>
+                  <button class="btn btn-primary" (click)="irPaso(3)" [disabled]="!pagoListo()">Revisar pedido →</button>
                 </div>
               </section>
             }
@@ -125,6 +152,9 @@ type Paso = 1 | 2 | 3 | 4;
                     <h4>Metodo de pago</h4>
                     <p>
                       {{ metodoIcono() }} {{ metodoNombre() }}
+                      @if (metodoSeleccionado() === 'yape' && comprobante()) {
+                        <span class="text-muted small"><br>Comprobante: {{ comprobante()!.name }}</span>
+                      }
                     </p>
                   </div>
 
@@ -149,7 +179,7 @@ type Paso = 1 | 2 | 3 | 4;
                     @if (procesando()) {
                       <span class="spinner"></span> Procesando...
                     } @else {
-                      Confirmar y pagar
+                      Confirmar pedido
                     }
                   </button>
                 </div>
@@ -164,9 +194,21 @@ type Paso = 1 | 2 | 3 | 4;
                 @if (pedidoFinal()?.estado_pedido === 'pagado') {
                   <div class="alert alert-success">Pago confirmado. Te contactaremos pronto.</div>
                 } @else {
-                  <div class="alert alert-info">Pago pendiente de confirmacion. Te avisaremos cuando se confirme.</div>
+                  <div class="alert alert-info">
+                    @if (pedidoFinal()?.pago?.metodo_pago === 'yape') {
+                      Recibimos tu comprobante. Lo verificamos y te escribimos por WhatsApp para coordinar el envio.
+                    } @else {
+                      Pago pendiente de confirmacion. Te avisaremos cuando se confirme.
+                    }
+                  </div>
+                }
+                @if (waTiendaLink()) {
+                  <a class="btn btn-primary" [href]="waTiendaLink()" target="_blank" rel="noopener noreferrer">
+                    💬 Coordinar envio por WhatsApp
+                  </a>
                 }
                 <div class="step-actions" style="justify-content: center;">
+                  <a routerLink="/mis-pedidos" class="btn btn-primary">Ver mis pedidos</a>
                   <a routerLink="/" class="btn btn-secondary">Volver al inicio</a>
                 </div>
               </section>
@@ -206,7 +248,6 @@ type Paso = 1 | 2 | 3 | 4;
 export class CheckoutComponent implements OnInit {
   private carritoSvc = inject(CarritoService);
   private checkoutSvc = inject(CheckoutService);
-  private culqiSvc = inject(CulqiService);
   private pedidoSvc = inject(PedidoService);
   private pagoSvc = inject(PagoService);
   private router = inject(Router);
@@ -220,9 +261,20 @@ export class CheckoutComponent implements OnInit {
   error = signal('');
   pedidoFinal = signal<Pedido | null>(null);
 
-  culqiActivo = this.culqiSvc.configurado;
+  comprobante = signal<File | null>(null);
+  yapeCopiado = signal(false);
+  private copiadoTimer: ReturnType<typeof setTimeout> | null = null;
 
   metodos = computed(() => this.checkoutSvc.config()?.metodos_pago ?? []);
+  yapeNumero = computed(() => this.checkoutSvc.config()?.yape?.numero ?? '');
+  yapeQr = computed(() => this.checkoutSvc.config()?.yape?.qr_url ?? '');
+
+  pagoListo = computed(() => {
+    const m = this.metodoSeleccionado();
+    if (!m) return false;
+    if (m === 'yape') return !!this.comprobante();
+    return true;
+  });
 
   direccion = {
     nombre: '',
@@ -243,6 +295,14 @@ export class CheckoutComponent implements OnInit {
     return this.metodos().find((m) => m.id === id)?.icono ?? '';
   });
 
+  waTiendaLink = computed(() => {
+    const num = this.checkoutSvc.config()?.whatsapp_tienda ?? '';
+    const pedido = this.pedidoFinal();
+    if (!num || !pedido) return '';
+    const msg = `Hola Hancco Artesanias! Acabo de hacer el pedido #${pedido.id} por S/ ${pedido.total}. Quisiera coordinar el envio.`;
+    return `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+  });
+
   ngOnInit(): void {
     this.cargar();
   }
@@ -250,7 +310,6 @@ export class CheckoutComponent implements OnInit {
   cargar(): void {
     this.carritoSvc.obtener().subscribe({
       next: (res) => {
-        this.carritoSvc['_carrito'].set(res.data);
         if (!res.data.detalles || res.data.detalles.length === 0) {
           this.router.navigate(['/carrito']);
         }
@@ -260,10 +319,7 @@ export class CheckoutComponent implements OnInit {
 
     this.loadingConfig.set(true);
     this.checkoutSvc.obtenerConfig().subscribe({
-      next: () => {
-        this.loadingConfig.set(false);
-        this.culqiSvc.cargarConfig().subscribe();
-      },
+      next: () => this.loadingConfig.set(false),
       error: () => this.loadingConfig.set(false),
     });
   }
@@ -277,11 +333,32 @@ export class CheckoutComponent implements OnInit {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
+  onComprobante(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.[0];
+    if (file) this.comprobante.set(file);
+  }
+
+  copiarYape(): void {
+    const num = this.yapeNumero();
+    if (!num) return;
+    const done = () => {
+      this.yapeCopiado.set(true);
+      if (this.copiadoTimer) clearTimeout(this.copiadoTimer);
+      this.copiadoTimer = setTimeout(() => this.yapeCopiado.set(false), 2000);
+    };
+    if (navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(num).then(done).catch(done);
+    } else {
+      done();
+    }
+  }
+
   confirmarPedido(): void {
     this.procesando.set(true);
     this.error.set('');
 
-    this.pedidoSvc.checkout(this.formatearDireccion()).subscribe({
+    this.pedidoSvc.checkout(this.formatearDireccion(), this.direccion.telefono).subscribe({
       next: (res) => {
         const pedido = res.data;
         this.procesarPago(pedido);
@@ -293,36 +370,18 @@ export class CheckoutComponent implements OnInit {
     });
   }
 
-  private async procesarPago(pedido: Pedido): Promise<void> {
+  private procesarPago(pedido: Pedido): void {
     const metodo = this.metodoSeleccionado()!;
 
-    if (metodo === 'tarjeta') {
-      try {
-        const token = await this.culqiSvc.abrirFormularioCulqi();
-        this.pagoSvc
-          .registrar(pedido.id, {
-            metodo_pago: 'tarjeta',
-            culqi_token: token.id,
-          })
-          .subscribe({
-            next: (res) => this.finalizar(res.data.pedido),
-            error: (err) => this.fallarPago(err),
-          });
-      } catch (e: any) {
-        this.procesando.set(false);
-        this.error.set(e.message ?? 'Pago con tarjeta cancelado.');
-      }
-    } else {
-      this.pagoSvc
-        .registrar(pedido.id, {
-          metodo_pago: metodo,
-          estado_pago: metodo === 'contraentrega' ? 'pendiente' : 'completado',
-        })
-        .subscribe({
-          next: (res) => this.finalizar(res.data.pedido),
-          error: (err) => this.fallarPago(err),
-        });
-    }
+    this.pagoSvc
+      .registrar(pedido.id, {
+        metodo_pago: metodo,
+        comprobante: metodo === 'yape' ? this.comprobante() : null,
+      })
+      .subscribe({
+        next: (res) => this.finalizar(res.data.pedido),
+        error: (err) => this.fallarPago(err),
+      });
   }
 
   private finalizar(pedido: Pedido): void {
@@ -335,7 +394,7 @@ export class CheckoutComponent implements OnInit {
   private fallarPago(err: any): void {
     this.procesando.set(false);
     const msg = err.error?.message ?? 'Error al procesar pago.';
-    this.error.set(msg + ' El pedido fue creado pero el pago fallo. Contactanos.');
+    this.error.set(msg + ' El pedido fue creado pero el pago fallo. Contactanos por WhatsApp.');
   }
 
   private formatearDireccion(): string {

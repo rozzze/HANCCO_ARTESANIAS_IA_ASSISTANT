@@ -20,6 +20,7 @@ class Pedido extends Model
         'total',
         'estado_pedido',
         'direccion_envio',
+        'telefono',
         'notas',
     ];
 

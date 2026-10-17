@@ -23,6 +23,11 @@ export interface CheckoutConfig {
     activo: boolean;
   };
   metodos_pago: MetodoPago[];
+  yape: {
+    numero: string;
+    qr_url: string;
+  };
+  whatsapp_tienda: string;
   culqi_cuotas: CulqiCuota[];
 }
 

@@ -24,6 +24,7 @@ export interface Pedido {
   total: number;
   estado_pedido: EstadoPedido;
   direccion_envio: string | null;
+  telefono: string | null;
   notas: string | null;
   detalles?: DetallePedido[];
   pago?: Pago;

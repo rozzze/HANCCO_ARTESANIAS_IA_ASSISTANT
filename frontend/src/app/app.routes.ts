@@ -32,6 +32,16 @@ export const routes: Routes = [
     loadComponent: () => import('./features/auth/register/register.component').then((m) => m.RegisterComponent),
   },
   {
+    path: 'auth/recuperar',
+    loadComponent: () =>
+      import('./features/auth/forgot-password/forgot-password.component').then((m) => m.ForgotPasswordComponent),
+  },
+  {
+    path: 'auth/recuperar/:token',
+    loadComponent: () =>
+      import('./features/auth/reset-password/reset-password.component').then((m) => m.ResetPasswordComponent),
+  },
+  {
     path: 'carrito',
     canActivate: [authGuard],
     loadComponent: () => import('./features/carrito/carrito.component').then((m) => m.CarritoComponent),
@@ -40,6 +50,16 @@ export const routes: Routes = [
     path: 'checkout',
     canActivate: [authGuard],
     loadComponent: () => import('./features/checkout/checkout.component').then((m) => m.CheckoutComponent),
+  },
+  {
+    path: 'mis-pedidos',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/pedidos/mis-pedidos.component').then((m) => m.MisPedidosComponent),
+  },
+  {
+    path: 'mis-pedidos/:id',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/pedidos/pedido-detalle.component').then((m) => m.PedidoDetalleComponent),
   },
   {
     path: 'admin',

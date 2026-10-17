@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 import { FormsModule } from '@angular/forms';
@@ -11,6 +11,7 @@ import { Categoria } from '../../../../core/models/categoria.model';
 @Component({
   selector: 'app-producto-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="page">
@@ -20,6 +21,21 @@ import { Categoria } from '../../../../core/models/categoria.model';
       </header>
 
       <div class="filters-card">
+        <button
+          type="button"
+          class="filters-toggle"
+          (click)="toggleFiltros()"
+          [attr.aria-expanded]="filtrosAbiertos()"
+          aria-controls="filtros-productos"
+        >
+          <span class="filters-toggle-label">🔎 Filtros</span>
+          @if (filtrosActivos() > 0) {
+            <span class="filters-count">{{ filtrosActivos() }}</span>
+          }
+          <span class="filters-caret">{{ filtrosAbiertos() ? '▾' : '▸' }}</span>
+        </button>
+
+        <div class="filters-body" id="filtros-productos" [class.open]="filtrosAbiertos()">
         <div class="filters-grid">
           <div class="filter-field filter-search">
             <label for="f-buscar">Buscar</label>
@@ -131,6 +147,7 @@ import { Categoria } from '../../../../core/models/categoria.model';
             <button class="btn btn-secondary" (click)="limpiarFiltros()">Limpiar</button>
           </div>
         </div>
+        </div>
       </div>
 
       @if (loading()) {
@@ -140,52 +157,55 @@ import { Categoria } from '../../../../core/models/categoria.model';
           <table class="data-table">
             <thead>
               <tr>
-                <th></th>
-                <th>Nombre</th>
+                <th>Producto</th>
                 <th>Categoria</th>
                 <th>Precio</th>
                 <th>Stock</th>
                 <th>Estado</th>
-                <th>Acciones</th>
+                <th class="th-actions">Acciones</th>
               </tr>
             </thead>
             <tbody>
               @for (p of productos(); track p.id) {
                 <tr>
-                  <td class="img-cell">
-                    @if (p.imagen_principal_url) {
-                      <img [src]="p.imagen_principal_url" [alt]="p.nombre">
-                    } @else {
-                      <div class="no-img">Sin img</div>
-                    }
-                  </td>
-                  <td>
-                    <strong>{{ p.nombre }}</strong>
-                    <span class="meta">{{ p.material }} · {{ p.color }}</span>
-                    <span class="talla-chips">
-                      @for (t of p.tallas ?? []; track t.id) {
-                        <span class="talla-chip" [class.sin-stock]="t.stock_disponible === 0" [title]="'Stock talla ' + t.talla + ': ' + t.stock_disponible">
-                          {{ t.talla }}<small>{{ t.stock_disponible }}</small>
-                        </span>
+                  <td class="cell-producto">
+                    <div class="prod-main">
+                      @if (p.imagen_principal_url) {
+                        <img class="prod-thumb" [src]="p.imagen_principal_url" [alt]="p.nombre" loading="lazy">
+                      } @else {
+                        <div class="prod-thumb no-img">Sin img</div>
                       }
-                    </span>
+                      <div class="prod-info">
+                        <strong>{{ p.nombre }}</strong>
+                        <span class="meta">{{ p.material }} · {{ p.color }}</span>
+                        <span class="talla-chips">
+                          @for (t of p.tallas ?? []; track t.id) {
+                            <span class="talla-chip" [class.sin-stock]="t.stock_disponible === 0" [title]="'Stock talla ' + t.talla + ': ' + t.stock_disponible">
+                              {{ t.talla }}<small>{{ t.stock_disponible }}</small>
+                            </span>
+                          }
+                        </span>
+                      </div>
+                    </div>
                   </td>
-                  <td>{{ p.categoria?.nombre ?? '—' }}</td>
-                  <td>S/ {{ p.precio_venta | number:'1.2-2' }}</td>
-                  <td>
+                  <td data-label="Categoria">{{ p.categoria?.nombre ?? '—' }}</td>
+                  <td data-label="Precio">S/ {{ p.precio_venta | number:'1.2-2' }}</td>
+                  <td data-label="Stock">
                     <span [class.stock-low]="p.stock_disponible <= 3">
                       {{ p.stock_disponible }}
                     </span>
                   </td>
-                  <td>
+                  <td data-label="Estado">
                     <span class="badge" [class.badge-on]="p.activo">
                       {{ p.activo ? 'Activo' : 'Inactivo' }}
                     </span>
                   </td>
                   <td class="actions">
-                    <a [routerLink]="['/admin/productos', p.id, 'imagenes']" class="btn-icon" title="Imagenes">🖼️</a>
-                    <a [routerLink]="['/admin/productos', p.id, 'editar']" class="btn-icon" title="Editar">✏️</a>
-                    <button class="btn-icon danger" (click)="eliminar(p)" title="Eliminar">🗑️</button>
+                    <div class="actions-row">
+                      <a [routerLink]="['/admin/productos', p.id, 'imagenes']" class="btn-icon" title="Imagenes" aria-label="Ver imagenes">🖼️</a>
+                      <a [routerLink]="['/admin/productos', p.id, 'editar']" class="btn-icon" title="Editar" aria-label="Editar producto">✏️</a>
+                      <button type="button" class="btn-icon danger" (click)="eliminar(p)" title="Eliminar" aria-label="Eliminar producto">🗑️</button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -223,6 +243,10 @@ export class ProductoListComponent implements OnInit {
   pagina = signal(1);
   ultimaPagina = signal(1);
 
+  filtrosAbiertos = signal(
+    typeof window === 'undefined' ? true : !window.matchMedia('(max-width: 768px)').matches
+  );
+
   buscar = '';
   categoriaId?: number;
   material = '';
@@ -249,6 +273,24 @@ export class ProductoListComponent implements OnInit {
   cambiarPagina(p: number): void {
     this.pagina.set(p);
     this.cargar();
+  }
+
+  toggleFiltros(): void {
+    this.filtrosAbiertos.update((v) => !v);
+  }
+
+  filtrosActivos(): number {
+    let n = 0;
+    if (this.buscar?.trim()) n++;
+    if (this.categoriaId !== undefined && this.categoriaId !== null) n++;
+    if (this.material) n++;
+    if (this.color) n++;
+    if (this.estado) n++;
+    if (this.stockBajo !== undefined && this.stockBajo !== null) n++;
+    if (this.precioMin !== undefined && this.precioMin !== null) n++;
+    if (this.precioMax !== undefined && this.precioMax !== null) n++;
+    if (this.ordenar !== 'recientes') n++;
+    return n;
   }
 
   limpiarFiltros(): void {

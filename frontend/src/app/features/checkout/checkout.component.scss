@@ -241,6 +241,64 @@
   font-size: 1rem;
 }
 
+.yape-panel {
+  margin-top: 1.25rem;
+  padding: 1.25rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+  background: var(--color-bg-alt);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+
+  h4 {
+    font-size: 1rem;
+    margin: 0;
+
+    .yape-total {
+      color: var(--color-primary);
+      font-size: 1.25rem;
+    }
+  }
+}
+
+.yape-qr {
+  width: 180px;
+  height: 180px;
+  object-fit: contain;
+  background: var(--color-white);
+  border-radius: var(--radius);
+  padding: 0.5rem;
+  border: 1px solid var(--color-border);
+}
+
+.yape-numero {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+
+  strong {
+    font-size: 1.125rem;
+    letter-spacing: 0.04em;
+    font-family: ui-monospace, 'SFMono-Regular', monospace;
+  }
+}
+
+.comprobante-row {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  flex-wrap: wrap;
+
+  .comp-ok {
+    font-size: 0.8125rem;
+    color: var(--color-success);
+    font-weight: 600;
+    word-break: break-all;
+  }
+}
+
 @media (max-width: 768px) {
   .layout { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }

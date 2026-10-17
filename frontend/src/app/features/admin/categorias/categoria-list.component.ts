@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { CategoriaService } from '../../../core/services/categoria.service';
@@ -8,6 +8,7 @@ import { Categoria } from '../../../core/models/categoria.model';
 @Component({
   selector: 'app-categoria-list',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule],
   template: `
     <div class="page">
@@ -48,22 +49,24 @@ import { Categoria } from '../../../core/models/categoria.model';
           @if (categorias().length > 0) {
             <table class="data-table">
               <thead>
-                <tr><th>Nombre</th><th>Productos</th><th>Activo</th><th></th></tr>
+                <tr><th>Nombre</th><th>Productos</th><th>Activo</th><th class="th-actions">Acciones</th></tr>
               </thead>
               <tbody>
                 @for (c of categorias(); track c.id) {
                   <tr>
-                    <td>
+                    <td data-label="Nombre">
                       <strong>{{ c.nombre }}</strong>
                       <span class="meta">/{{ c.slug }}</span>
                     </td>
-                    <td>{{ c.productos_count ?? 0 }}</td>
-                    <td>
+                    <td data-label="Productos">{{ c.productos_count ?? 0 }}</td>
+                    <td data-label="Activo">
                       <span class="badge" [class.badge-on]="c.activo">{{ c.activo ? 'Si' : 'No' }}</span>
                     </td>
                     <td class="actions">
-                      <button class="btn-icon" (click)="editar(c)">✏️</button>
-                      <button class="btn-icon danger" (click)="eliminar(c)">🗑️</button>
+                      <div class="actions-row">
+                        <button type="button" class="btn-icon" (click)="editar(c)" title="Editar" aria-label="Editar categoria">✏️</button>
+                        <button type="button" class="btn-icon danger" (click)="eliminar(c)" title="Eliminar" aria-label="Eliminar categoria">🗑️</button>
+                      </div>
                     </td>
                   </tr>
                 }

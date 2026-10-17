@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, Input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -11,6 +11,7 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
 @Component({
   selector: 'app-producto-detalle',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="container page">
@@ -23,7 +24,7 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
             <div class="gallery">
               @if (imagenActiva(); as img) {
                 <div class="main-img">
-                  <img [src]="img.url_cloudflare_s3" [alt]="p.nombre">
+                  <img [src]="img.url_cloudflare_s3" [alt]="p.nombre" fetchpriority="high" decoding="async">
                   @if (img.generada_ia) {
                     <span class="badge-ia">✨ Mejorada con IA</span>
                   }
@@ -40,7 +41,7 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
                       [class.active]="imagenActiva()?.id === img.id"
                       (click)="imagenActiva.set(img)"
                     >
-                      <img [src]="img.url_cloudflare_s3" [alt]="p.nombre">
+                      <img [src]="img.url_cloudflare_s3" [alt]="p.nombre" loading="lazy" decoding="async">
                     </button>
                   }
                 </div>
@@ -87,7 +88,7 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
 
               <div class="description">
                 <h3>Descripcion</h3>
-                <p>{{ p.descripcion_ia ?? p.descripcion_manual ?? 'Prenda artesanal hecha a mano con fibra de alpaca.' }}</p>
+                <p>{{ p.descripcion_ia ?? p.descripcion_manual ?? 'Prenda tradicional de calidad, confeccionada en Arequipa.' }}</p>
               </div>
 
               @if (p.stock_disponible > 0) {

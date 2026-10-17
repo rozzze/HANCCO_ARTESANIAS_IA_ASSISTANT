@@ -17,13 +17,25 @@ class PedidoController extends Controller
 {
     public function index(Request $request): JsonResponse
     {
-        $pedidos = Pedido::where('cliente_id', $request->user()->id)
-            ->with(['detalles.producto', 'pago'])
-            ->latest('fecha_pedido')
-            ->paginate(15);
+        $perPage = min(max($request->integer('per_page', 15), 1), 50);
+
+        $query = Pedido::where('cliente_id', $request->user()->id)
+            ->with(['detalles.producto.imagenes', 'pago']);
+
+        if ($request->filled('estado_pedido')) {
+            $query->where('estado_pedido', $request->string('estado_pedido'));
+        }
+
+        $pedidos = $query->latest('fecha_pedido')->paginate($perPage);
 
         return response()->json([
             'data' => PedidoResource::collection($pedidos),
+            'meta' => [
+                'current_page' => $pedidos->currentPage(),
+                'last_page' => $pedidos->lastPage(),
+                'per_page' => $pedidos->perPage(),
+                'total' => $pedidos->total(),
+            ],
         ]);
     }
 
@@ -35,7 +47,7 @@ class PedidoController extends Controller
 
         return response()->json([
             'data' => new PedidoResource(
-                $pedido->load(['detalles.producto', 'pago'])
+                $pedido->load(['detalles.producto.imagenes', 'pago'])
             ),
         ]);
     }
@@ -44,6 +56,7 @@ class PedidoController extends Controller
     {
         $data = $request->validate([
             'direccion_envio' => ['required', 'string', 'max:500'],
+            'telefono' => ['required', 'string', 'max:30'],
             'notas' => ['nullable', 'string', 'max:1000'],
         ]);
 
@@ -52,7 +65,7 @@ class PedidoController extends Controller
             ->with('detalles')
             ->first();
 
-        if (!$carrito || $carrito->detalles->isEmpty()) {
+        if (! $carrito || $carrito->detalles->isEmpty()) {
             return response()->json([
                 'message' => 'Tu carrito no tiene items.',
             ], 422);
@@ -65,8 +78,9 @@ class PedidoController extends Controller
                 $producto = Producto::lockForUpdate()->find($detalle->producto_id);
                 $variante = ProductoTalla::lockForUpdate()->find($detalle->producto_talla_id);
 
-                if (!$producto || !$variante || !$variante->activo || $variante->stock_disponible < $detalle->cantidad) {
+                if (! $producto || ! $variante || ! $variante->activo || $variante->stock_disponible < $detalle->cantidad) {
                     $talla = $variante?->talla ? " (talla {$variante->talla})" : '';
+
                     return response()->json([
                         'message' => "Stock insuficiente para {$producto?->nombre}{$talla}. Revisa tu carrito.",
                     ], 422);
@@ -79,6 +93,7 @@ class PedidoController extends Controller
                 'total' => 0,
                 'estado_pedido' => 'pendiente',
                 'direccion_envio' => $data['direccion_envio'],
+                'telefono' => $data['telefono'],
                 'notas' => $data['notas'] ?? null,
             ]);
 
@@ -119,7 +134,7 @@ class PedidoController extends Controller
         return response()->json([
             'message' => 'Pedido creado. Procede con el pago.',
             'data' => new PedidoResource(
-                $resultado->load(['detalles.producto', 'pago'])
+                $resultado->load(['detalles.producto.imagenes', 'pago'])
             ),
         ], 201);
     }

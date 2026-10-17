@@ -17,6 +17,7 @@ class PedidoResource extends JsonResource
             'total' => (float) $this->total,
             'estado_pedido' => $this->estado_pedido,
             'direccion_envio' => $this->direccion_envio,
+            'telefono' => $this->telefono,
             'notas' => $this->notas,
             'detalles' => DetallePedidoResource::collection($this->whenLoaded('detalles')),
             'pago' => $this->whenLoaded('pago', fn () => new PagoResource($this->pago)),

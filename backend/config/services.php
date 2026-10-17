@@ -21,6 +21,19 @@ return [
         'public_url' => env('CLOUDFLARE_R2_PUBLIC_URL'),
     ],
 
+    'yape' => [
+        'numero' => env('YAPE_NUMERO', ''),
+        'qr_url' => env('YAPE_QR_URL', ''),
+    ],
+
+    'whatsapp' => [
+        'tienda' => env('WHATSAPP_TIENDA', ''),
+    ],
+
+    'frontend' => [
+        'url' => env('FRONTEND_URL', 'http://localhost:4200'),
+    ],
+
     'mailgun' => [
         'domain' => env('MAILGUN_DOMAIN'),
         'secret' => env('MAILGUN_SECRET'),

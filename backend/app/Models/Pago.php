@@ -20,6 +20,7 @@ class Pago extends Model
         'monto',
         'fecha_pago',
         'estado_pago',
+        'comprobante_url',
         'metadata',
     ];
 

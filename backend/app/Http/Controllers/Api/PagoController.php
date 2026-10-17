@@ -7,6 +7,7 @@ use App\Http\Resources\PagoResource;
 use App\Http\Resources\PedidoResource;
 use App\Models\Pago;
 use App\Models\Pedido;
+use App\Services\CloudflareR2Service;
 use App\Services\CulqiService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -17,6 +18,7 @@ class PagoController extends Controller
 {
     public function __construct(
         protected CulqiService $culqi,
+        protected CloudflareR2Service $r2,
     ) {}
 
     public function store(Request $request, Pedido $pedido): JsonResponse
@@ -41,12 +43,18 @@ class PagoController extends Controller
             'metodo_pago' => ['required', 'string', 'in:tarjeta,yape,plin,transferencia,contraentrega'],
             'transaccion_id' => ['nullable', 'string', 'max:120'],
             'culqi_token' => ['required_if:metodo_pago,tarjeta', 'nullable', 'string'],
-            'estado_pago' => ['nullable', 'in:pendiente,completado,fallido'],
             'metadata' => ['nullable', 'array'],
+            'comprobante' => ['nullable', 'file', 'image', 'mimes:jpg,jpeg,png,webp', 'max:10240'],
         ]);
 
-        $pago = DB::transaction(function () use ($pedido, $data, $request) {
-            $estadoInicial = $data['estado_pago'] ?? 'completado';
+        $comprobanteUrl = null;
+        if ($request->hasFile('comprobante')) {
+            $subida = $this->r2->subirComprobante($request->file('comprobante'), $pedido->id);
+            $comprobanteUrl = $subida['url'];
+        }
+
+        $pago = DB::transaction(function () use ($pedido, $data, $request, $comprobanteUrl) {
+            $estadoInicial = 'pendiente';
             $culqiChargeId = null;
             $transaccionId = $data['transaccion_id'] ?? null;
             $metadata = $data['metadata'] ?? [];
@@ -81,6 +89,7 @@ class PagoController extends Controller
                 'monto' => $pedido->total,
                 'fecha_pago' => $estadoInicial === 'completado' ? now() : null,
                 'estado_pago' => $estadoInicial,
+                'comprobante_url' => $comprobanteUrl,
                 'metadata' => $metadata ?: null,
             ]);
 
@@ -95,7 +104,7 @@ class PagoController extends Controller
             'message' => $pago->estado_pago === 'completado' ? 'Pago registrado y confirmado.' : 'Pago registrado, pendiente de confirmacion.',
             'data' => [
                 'pago' => new PagoResource($pago),
-                'pedido' => new PedidoResource($pago->pedido->load(['detalles.producto', 'pago'])),
+                'pedido' => new PedidoResource($pago->pedido->load(['detalles.producto.imagenes', 'pago'])),
             ],
         ], 201);
     }
@@ -105,10 +114,11 @@ class PagoController extends Controller
         $payloadRaw = $request->getContent();
         $firma = $request->header('X-Culqi-Signature');
 
-        if (!$this->culqi->validarFirmaWebhook($payloadRaw, $firma)) {
+        if (! $this->culqi->validarFirmaWebhook($payloadRaw, $firma)) {
             Log::warning('Webhook Culqi con firma invalida', [
                 'ip' => $request->ip(),
             ]);
+
             return response()->json(['message' => 'Firma invalida.'], 401);
         }
 
@@ -118,13 +128,14 @@ class PagoController extends Controller
         $chargeId = $data['id'] ?? $data['object']['id'] ?? null;
         $estado = $data['state'] ?? $data['object']['state'] ?? null;
 
-        if (!$chargeId) {
+        if (! $chargeId) {
             return response()->json(['message' => 'Sin charge id.'], 400);
         }
 
         $pago = Pago::where('culqi_charge_id', $chargeId)->first();
-        if (!$pago) {
+        if (! $pago) {
             Log::warning('Webhook Culqi: cargo no encontrado', ['charge_id' => $chargeId]);
+
             return response()->json(['message' => 'Cargo no encontrado.'], 404);
         }
 

@@ -22,11 +22,14 @@ class CheckoutController extends Controller
                     'activo' => $this->culqi->estaConfigurado(),
                 ],
                 'metodos_pago' => [
-                    ['id' => 'contraentrega', 'nombre' => 'Contraentrega', 'descripcion' => 'Paga al recibir tu pedido en casa.', 'icono' => '🚚'],
-                    ['id' => 'yape', 'nombre' => 'Yape', 'descripcion' => 'Paga con tu app Yape.', 'icono' => '📱'],
-                    ['id' => 'tarjeta', 'nombre' => 'Tarjeta de credito/debito', 'descripcion' => 'Visa, Mastercard, Amex via Culqi.', 'icono' => '💳'],
-                    ['id' => 'transferencia', 'nombre' => 'Transferencia bancaria', 'descripcion' => 'BCP, BBVA, Interbank.', 'icono' => '🏦'],
+                    ['id' => 'yape', 'nombre' => 'Yape', 'descripcion' => 'Yapea el total y sube tu comprobante. Verificamos al instante.', 'icono' => '📱'],
+                    ['id' => 'contraentrega', 'nombre' => 'Contraentrega', 'descripcion' => 'Paga en efectivo al recibir tu pedido.', 'icono' => '🚚'],
                 ],
+                'yape' => [
+                    'numero' => config('services.yape.numero', ''),
+                    'qr_url' => config('services.yape.qr_url', ''),
+                ],
+                'whatsapp_tienda' => config('services.whatsapp.tienda', ''),
                 'culqi_cuotas' => [
                     ['id' => 'sin_cuotas', 'nombre' => 'Sin cuotas', 'monto_mult' => 1],
                     ['id' => '3_cuotas', 'nombre' => '3 cuotas', 'monto_mult' => 1.05],

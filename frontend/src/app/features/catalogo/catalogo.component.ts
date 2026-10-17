@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductoService, ProductoFiltros } from '../../core/services/producto.service';
@@ -10,6 +10,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
 @Component({
   selector: 'app-catalogo',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ProductCardComponent],
   template: `
     <div class="container page">
@@ -18,7 +19,23 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
         <p class="text-muted">{{ total() }} productos</p>
       </header>
 
-      <div class="filters">
+      <div class="filters-card">
+        <button
+          type="button"
+          class="filters-toggle"
+          (click)="toggleFiltros()"
+          [attr.aria-expanded]="filtrosAbiertos()"
+          aria-controls="filtros-catalogo"
+        >
+          <span class="filters-toggle-label">🔎 Filtros</span>
+          @if (filtrosActivos() > 0) {
+            <span class="filters-count">{{ filtrosActivos() }}</span>
+          }
+          <span class="filters-caret">{{ filtrosAbiertos() ? '▾' : '▸' }}</span>
+        </button>
+
+        <div class="filters-body" id="filtros-catalogo" [class.open]="filtrosAbiertos()">
+        <div class="filters">
         <input
           type="search"
           [(ngModel)]="buscar"
@@ -84,6 +101,8 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
           <option value="nombre">Nombre A-Z</option>
         </select>
         <button class="btn btn-secondary filter-clear" (click)="limpiarFiltros()">Limpiar</button>
+        </div>
+        </div>
       </div>
 
       @if (loading()) {
@@ -133,6 +152,10 @@ export class CatalogoComponent implements OnInit {
   precioMax?: number;
   ordenar: ProductoFiltros['ordenar'] = 'recientes';
 
+  filtrosAbiertos = signal(
+    typeof window === 'undefined' ? true : !window.matchMedia('(max-width: 768px)').matches
+  );
+
   ngOnInit(): void {
     this.categoriaSvc.listarPublico().subscribe({
       next: (res) => this.categorias.set(res.data ?? []),
@@ -144,6 +167,23 @@ export class CatalogoComponent implements OnInit {
   onFiltro(): void {
     this.pagina.set(1);
     this.cargar();
+  }
+
+  toggleFiltros(): void {
+    this.filtrosAbiertos.update((v) => !v);
+  }
+
+  filtrosActivos(): number {
+    let n = 0;
+    if (this.buscar?.trim()) n++;
+    if (this.categoriaId !== undefined && this.categoriaId !== null) n++;
+    if (this.material) n++;
+    if (this.color) n++;
+    if (this.talla) n++;
+    if (this.precioMin !== undefined && this.precioMin !== null) n++;
+    if (this.precioMax !== undefined && this.precioMax !== null) n++;
+    if (this.ordenar !== 'recientes') n++;
+    return n;
   }
 
   cambiarPagina(p: number): void {

@@ -1,4 +1,4 @@
-import { Component, OnInit, inject, signal, Input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, Router, RouterLink } from '@angular/router';
@@ -10,6 +10,7 @@ import { Categoria } from '../../../../core/models/categoria.model';
 @Component({
   selector: 'app-producto-form',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="page">
@@ -33,7 +34,7 @@ import { Categoria } from '../../../../core/models/categoria.model';
 
         <div class="form-group">
           <label class="form-label">Material *</label>
-          <input name="material" [(ngModel)]="form.material" required class="form-control" placeholder="100% Alpaca">
+          <input name="material" [(ngModel)]="form.material" required class="form-control" placeholder="Algodon, lana, mezcla...">
         </div>
 
         <div class="form-group">

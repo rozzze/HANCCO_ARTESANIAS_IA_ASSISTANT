@@ -1,19 +1,20 @@
-import { Component } from '@angular/core';
+import { Component, ChangeDetectionStrategy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink } from '@angular/router';
 
 @Component({
   selector: 'app-nosotros',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink],
   template: `
     <div class="container page">
       <section class="hero-section">
         <span class="eyebrow">Nuestra Historia</span>
-        <h1>Tradicion andina, diseno contemporaneo</h1>
+        <h1>Tradicion arequipena, diseno contemporaneo</h1>
         <p class="lead">
-          Hancco Artesanias nace en las alturas de Cusco, Peru, donde un grupo de familias
-          artesanas decidieron preservar las tecnicas textiles heredadas de sus abuelos.
+          Hancco Artesanias nace en Arequipa, la Ciudad Blanca, a pasos de la Plaza de Armas,
+          con la mision de llevar la ropa tradicional peruana a todo el pais.
         </p>
       </section>
 
@@ -21,16 +22,15 @@ import { RouterLink } from '@angular/router';
         <div>
           <h2>Nuestra mision</h2>
           <p>
-            Digitalizar las ventas de prendas de fibra de alpaca, conectando directamente a
-            las familias artesanas con clientes que valoran la calidad, la tradicion y el
-            comercio justo.
+            Digitalizar las ventas de ropa tradicional de todo tipo, conectando directamente a
+            los clientes con prendas de calidad que reflejan la identidad arequipena.
           </p>
         </div>
         <div>
           <h2>Nuestro compromiso</h2>
           <p>
-            Cada prenda es tejida a mano con fibra natural. Sin intermediarios, sin
-            produccion masiva. Compras directactamente a quien hizo la prenda.
+            Cada prenda es confeccionada con telas seleccionadas y acabados cuidados. Sin
+            intermediarios, compra directa y comercio transparente.
           </p>
         </div>
       </section>
@@ -39,24 +39,24 @@ import { RouterLink } from '@angular/router';
         <h2 class="text-center">Lo que nos define</h2>
         <div class="values-grid">
           <div class="value">
-            <div class="value-icon">🧶</div>
-            <h3>Hecho a mano</h3>
-            <p>Tecnicas textiles tradicionales transmitidas por generaciones.</p>
+            <div class="value-icon">&#128085;</div>
+            <h3>Variedad</h3>
+            <p>Ropa tradicional de todo tipo, para cada ocasion y cada persona.</p>
           </div>
           <div class="value">
-            <div class="value-icon">🦙</div>
-            <h3>Fibra natural</h3>
-            <p>100% alpaca de las alturas andinas, sin mezclas sinteticas.</p>
+            <div class="value-icon">&#10024;</div>
+            <h3>Calidad</h3>
+            <p>Telas y acabados de primera seleccion en cada prenda.</p>
           </div>
           <div class="value">
-            <div class="value-icon">⚖️</div>
+            <div class="value-icon">&#9878;&#65039;</div>
             <h3>Comercio justo</h3>
-            <p>Pago directo a las familias artesanas que crean cada prenda.</p>
+            <p>Precios transparentes y trato directo, sin intermediarios.</p>
           </div>
           <div class="value">
-            <div class="value-icon">🌱</div>
-            <h3>Sostenible</h3>
-            <p>Produccion responsable, fibras renovables, baja huella de carbono.</p>
+            <div class="value-icon">&#127793;</div>
+            <h3>Cercania</h3>
+            <p>Estamos en el corazon de Arequipa, junto a la Plaza de Armas.</p>
           </div>
         </div>
       </section>

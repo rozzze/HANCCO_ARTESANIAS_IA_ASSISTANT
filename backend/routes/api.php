@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\Admin\ImagenController as AdminImagenController;
 use App\Http\Controllers\Api\Admin\ManiquiController as AdminManiquiController;
 use App\Http\Controllers\Api\Admin\PedidoController as AdminPedidoController;
 use App\Http\Controllers\Api\Admin\ProductoController as AdminProductoController;
+use App\Http\Controllers\Api\Admin\StatsController as AdminStatsController;
 use App\Http\Controllers\Api\Admin\UsuarioController as AdminUsuarioController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\CarritoController;
@@ -20,6 +21,8 @@ use Illuminate\Support\Facades\Route;
 Route::prefix('auth')->group(function () {
     Route::post('register', [AuthController::class, 'register']);
     Route::post('login', [AuthController::class, 'login']);
+    Route::post('forgot-password', [AuthController::class, 'forgotPassword'])->middleware('throttle:5,1');
+    Route::post('reset-password', [AuthController::class, 'resetPassword'])->middleware('throttle:5,1');
 
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
@@ -59,6 +62,8 @@ Route::get('checkout/config', [CheckoutController::class, 'config']);
 
 // === ADMIN ===
 Route::middleware(['auth:sanctum', 'admin'])->prefix('admin')->group(function () {
+    Route::get('stats', [AdminStatsController::class, 'index']);
+
     Route::apiResource('categorias', AdminCategoriaController::class);
     Route::apiResource('maniquies', AdminManiquiController::class)->parameters(['maniquies' => 'maniqui']);
 

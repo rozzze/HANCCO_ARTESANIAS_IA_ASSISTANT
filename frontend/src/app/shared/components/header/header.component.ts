@@ -1,4 +1,4 @@
-import { Component, computed, inject } from '@angular/core';
+import { Component, ChangeDetectionStrategy, computed, inject } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../../core/services/auth.service';
@@ -8,20 +8,26 @@ import { ToastService } from '../../../core/services/toast.service';
 @Component({
   selector: 'app-header',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, RouterLink, RouterLinkActive],
   template: `
     <header class="header">
       <div class="container header-inner">
         <a routerLink="/" class="brand">
           <span class="brand-mark">H</span>
-          <span class="brand-name">Hancco</span>
-          <span class="brand-tag">Artesanias</span>
+          <span class="brand-text">
+            <span class="brand-name">Hancco</span>
+            <span class="brand-tag">Artesanias</span>
+          </span>
         </a>
 
         <nav class="nav">
           <a routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{exact:true}">Inicio</a>
           <a routerLink="/catalogo" routerLinkActive="active">Catalogo</a>
           <a routerLink="/nosotros" routerLinkActive="active">Nosotros</a>
+          @if (isLoggedIn()) {
+            <a routerLink="/mis-pedidos" routerLinkActive="active">Mis pedidos</a>
+          }
           @if (isAdmin()) {
             <a routerLink="/admin" routerLinkActive="active">Admin</a>
           }

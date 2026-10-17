@@ -58,6 +58,19 @@ export class AuthService {
       .pipe(tap((res) => this._usuario.set(res.data)));
   }
 
+  solicitarRecuperacion(correo: string): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/auth/forgot-password`, { correo });
+  }
+
+  restablecerContrasena(data: {
+    correo: string;
+    token: string;
+    password: string;
+    password_confirmation: string;
+  }): Observable<{ message: string }> {
+    return this.http.post<{ message: string }>(`${this.apiUrl}/auth/reset-password`, data);
+  }
+
   private guardarSesion(res: AuthResponse): void {
     localStorage.setItem(TOKEN_KEY, res.data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(res.data.usuario));

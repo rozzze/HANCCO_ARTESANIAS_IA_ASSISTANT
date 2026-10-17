@@ -1,4 +1,4 @@
-import { Component, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink, ActivatedRoute } from '@angular/router';
@@ -8,6 +8,7 @@ import { ToastService } from '../../../core/services/toast.service';
 @Component({
   selector: 'app-login',
   standalone: true,
+  changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, RouterLink],
   template: `
     <div class="auth-page">
@@ -42,6 +43,10 @@ import { ToastService } from '../../../core/services/toast.service';
               class="form-control"
               placeholder="••••••••"
             >
+          </div>
+
+          <div class="forgot-row">
+            <a routerLink="/auth/recuperar">Olvidaste tu contrasena?</a>
           </div>
 
           @if (error()) {
