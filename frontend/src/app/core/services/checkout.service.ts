@@ -1,6 +1,6 @@
 import { Injectable, inject, signal } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, of } from 'rxjs';
 import { environment } from '../../../environments/environment';
 
 export interface MetodoPago {
@@ -40,6 +40,11 @@ export class CheckoutService {
   readonly config = this._config.asReadonly();
 
   obtenerConfig(): Observable<{ data: CheckoutConfig }> {
+    const cacheada = this._config();
+    if (cacheada) {
+      return of({ data: cacheada });
+    }
+
     return new Observable((observer) => {
       this.http.get<{ data: CheckoutConfig }>(`${this.apiUrl}/checkout/config`).subscribe({
         next: (res) => {

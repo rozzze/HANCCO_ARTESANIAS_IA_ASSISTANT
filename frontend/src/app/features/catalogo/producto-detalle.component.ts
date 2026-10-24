@@ -6,6 +6,8 @@ import { ProductoService } from '../../core/services/producto.service';
 import { CarritoService } from '../../core/services/carrito.service';
 import { AuthService } from '../../core/services/auth.service';
 import { ToastService } from '../../core/services/toast.service';
+import { CheckoutService } from '../../core/services/checkout.service';
+import { buildConsultaLink } from '../../core/utils/whatsapp.util';
 import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.model';
 
 @Component({
@@ -53,6 +55,11 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
               <h1>{{ p.nombre }}</h1>
 
               <div class="price">S/ {{ p.precio_venta | number:'1.2-2' }}</div>
+
+              <div class="alert alert-info aviso-ref">
+                💬 Los precios, tallas y disponibilidad son <strong>referenciales</strong> y pueden
+                variar. Te recomendamos confirmarlos por WhatsApp antes de tu compra.
+              </div>
 
               <div class="attrs">
                 <div class="attr"><span class="attr-label">Material</span><span>{{ p.material }}</span></div>
@@ -113,6 +120,17 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
               } @else {
                 <div class="alert alert-error">Producto agotado.</div>
               }
+
+              @if (waLink()) {
+                <a
+                  class="btn btn-wa btn-block mt-2"
+                  [href]="waLink()"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  💬 Consultar por WhatsApp
+                </a>
+              }
             </div>
           </div>
         } @else {
@@ -129,6 +147,7 @@ export class ProductoDetalleComponent implements OnInit {
   private authSvc = inject(AuthService);
   private toast = inject(ToastService);
   private route = inject(ActivatedRoute);
+  private checkoutSvc = inject(CheckoutService);
 
   @Input() id?: string;
 
@@ -143,6 +162,10 @@ export class ProductoDetalleComponent implements OnInit {
   mensaje = signal('');
 
   ngOnInit(): void {
+    if (!this.checkoutSvc.config()) {
+      this.checkoutSvc.obtenerConfig().subscribe({ error: () => {} });
+    }
+
     const productoId = Number(this.id ?? this.route.snapshot.paramMap.get('id'));
     this.productoSvc.obtenerPublico(productoId).subscribe({
       next: (res) => {
@@ -170,6 +193,17 @@ export class ProductoDetalleComponent implements OnInit {
   cambiarCantidad(delta: number): void {
     const max = this.tallaSel()?.stock_disponible ?? 1;
     this.cantidad.update((c) => Math.min(max, Math.max(1, c + delta)));
+  }
+
+  waLink(): string {
+    const numero = this.checkoutSvc.config()?.whatsapp_tienda ?? '';
+    const p = this.producto();
+    if (!numero || !p) return '';
+
+    return buildConsultaLink(p, numero, {
+      talla: this.tallaSel()?.talla,
+      cantidad: this.cantidad(),
+    });
   }
 
   agregarCarrito(): void {

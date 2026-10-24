@@ -253,6 +253,36 @@
 
 .btn-block { flex: 1; }
 
+.btn-wa {
+  background: #25D366;
+  color: var(--color-white);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.28);
+  flex: none;
+  width: 100%;
+
+  &:hover {
+    background: #1ebe5d;
+    color: var(--color-white);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.36);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #128C4B;
+    outline-offset: 2px;
+  }
+}
+
+.aviso-ref {
+  margin: 0.875rem 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+
+  strong {
+    font-weight: 700;
+  }
+}
+
 @media (max-width: 768px) {
   .detail { grid-template-columns: 1fr; gap: 1.5rem; }
   .gallery { position: static; }

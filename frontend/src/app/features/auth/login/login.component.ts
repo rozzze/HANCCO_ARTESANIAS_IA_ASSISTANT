@@ -65,12 +65,6 @@ import { ToastService } from '../../../core/services/toast.service';
         <p class="text-center mt-2">
           No tienes cuenta? <a routerLink="/auth/register">Registrate</a>
         </p>
-
-        <div class="hint">
-          <strong>Cuentas demo:</strong><br>
-          Admin: admin&#64;hancco.com / admin1234<br>
-          Cliente: cliente&#64;hancco.com / cliente1234
-        </div>
       </div>
     </div>
   `,

@@ -1,0 +1,719 @@
+\documentclass[12pt,a4paper]{article}
+
+% =====================================================
+% PAQUETES
+% =====================================================
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[spanish,es-tabla]{babel}
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{fancyhdr}
+\usepackage{booktabs}
+\usepackage{longtable}
+\usepackage{tabularx}
+\usepackage{array}
+\usepackage{ragged2e}
+\usepackage{enumitem}
+\usepackage{titlesec}
+\usepackage{listings}
+
+% =====================================================
+% CABECERA Y PIE DE PAGINA
+% =====================================================
+\setlength{\headheight}{15pt}
+\setlength{\headsep}{10pt}
+
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small Sistema Web E-commerce con IA Sprint 7 -- Hancco Artesanías}
+\fancyfoot[C]{\thepage}
+\renewcommand{\headrulewidth}{0.4pt}
+\renewcommand{\footrulewidth}{0pt}
+
+% =====================================================
+% FORMATO GENERAL
+% =====================================================
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{4pt}
+\renewcommand{\arraystretch}{1.25}
+
+\newcolumntype{L}{>{\RaggedRight\arraybackslash}X}
+
+\titleformat{\section}
+{\normalfont\large\bfseries}{}{0em}{}
+
+\titleformat{\subsection}
+{\normalfont\normalsize\bfseries}{}{0em}{}
+
+\titlespacing*{\section}{0pt}{10pt}{6pt}
+\titlespacing*{\subsection}{0pt}{8pt}{4pt}
+
+\lstset{
+    basicstyle=\small\ttfamily,
+    breaklines=true,
+    showstringspaces=false,
+    frame=single,
+    columns=fullflexible,
+    keepspaces=true
+}
+
+\begin{document}
+\thispagestyle{fancy}
+
+% =====================================================
+% HISTORIA DE USUARIO
+% =====================================================
+\section*{HISTORIA DE USUARIO SCRUM}
+
+\subsection*{HU-07 -- Sprint 7 -- Hancco Artesanías}
+
+\subsection*{Metadatos de la Historia}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Campo} & \textbf{Valor} \\
+\midrule
+Número & HU-07(SG-07) \\
+Nombre historia & Gestión de Carrito de Compras del Cliente Autenticado \\
+Épica & Gestión de Compras y Pagos del Cliente \\
+Usuario(Rol) & Cliente autenticado \\
+Sprint asignado & Sprint 7(semana del 12/10/2026 al 17/10/2026) \\
+Iteración asignada & 7 \\
+Prioridad en negocio & Alta \\
+Riesgo en desarrollo & Media \\
+Puntos estimados & 5(Fibonacci) \\
+Esfuerzo planificado & 28 horas-hombre \\
+Programador responsable & Miguel Isac Cutipa Hancco(Dev) \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Product Owner & Miguel Isac Cutipa Hancco \\
+Fecha de creación & 10/10/2026 \\
+Estado & En proceso \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% DESCRIPCION
+% =====================================================
+\subsection*{Descripción de la Historia}
+
+Como cliente autenticado del Sistema Web E-commerce Hancco Artesanías, quiero gestionar un carrito de compras donde pueda agregar productos con su talla y cantidad, ajustar cantidades, eliminar items y visualizar el total acumulado, con la finalidad de consolidar mis compras antes de proceder al checkout de forma segura y con validación de stock en tiempo real.
+
+\subsection*{Descripción extendida}
+
+La historia comprende el módulo de carrito de compras del cliente autenticado, accesible desde el catálogo público del Sprint 6 mediante el botón ``Agregar al carrito'' en la ficha de cada producto y desde la página \texttt{/carrito}. Cada cliente posee un único carrito activo(tabla \texttt{carrito\_compras} con \texttt{estado='activo'}) creado con \texttt{firstOrCreate} al primer request, con relación a detalles(tabla \texttt{detalle\_carrito}) que asocian producto, \texttt{producto\_talla}(variante por talla), cantidad y subtotal.
+
+Al agregar un item(\texttt{POST /api/carrito/items}), el backend valida \texttt{producto\_id}, \texttt{producto\_talla\_id} y \texttt{cantidad}, luego dentro de una transacción con \texttt{lockForUpdate} sobre el producto y la variante verifica que la talla esté activa y que la cantidad acumulada(item existente + nuevo) no supere \texttt{stock\_disponible}; si supera, responde HTTP 422 con el mensaje ``Stock insuficiente para la talla \{talla\}''. Si no existe detalle lo crea, y si existe suma la cantidad y recalcula el subtotal con \texttt{precio\_venta} del producto. Tras cada operación el carrito invoca \texttt{recalcularTotal()} que persiste la suma de subtotales.
+
+Las operaciones \texttt{PATCH /api/carrito/items/\{detalle\}} actualiza cantidad(con validación de stock), \texttt{DELETE /api/carrito/items/\{detalle\}} elimina el item y \texttt{DELETE /api/carrito} vacía todo. Cada respuesta devuelve el carrito completo con detalles, producto, imágenes y total, a través de \texttt{CarritoCompraResource}. El frontend Angular muestra en \texttt{/carrito} una lista de tarjetas con imagen principal, nombre, color, talla, precio unitario, controles +/− de cantidad, subtotal por línea y botón eliminar; un panel lateral de resumen muestra subtotal, ``Envío: A coordinar'' y total, con botón ``Proceder al checkout $\rightarrow$'' que redirige a \texttt{/checkout}(Sprint 8). El carrito vacío muestra mensaje y enlace al catálogo. Todo está protegido por token de Laravel Sanctum(cliente autenticado); el acceso a items ajenos devuelve HTTP 403 mediante \texttt{asegurarCarritoDelUsuario}.
+
+% =====================================================
+% CRITERIOS DE ACEPTACION
+% =====================================================
+\subsection*{Criterios de Aceptación}
+
+\textbf{Escenario 1 -- Agregar producto al carrito(RF07.1)}\\
+Dado que el cliente autenticado visualiza un producto del catálogo con variantes por talla,\\
+Cuando selecciona talla y cantidad y presiona ``Agregar al carrito'',\\
+Entonces el sistema valida producto y talla activa, verifica stock disponible con bloqueo pesimista, crea o actualiza el detalle sumando cantidades, recalcula el total del carrito y responde HTTP 200 con la estructura del carrito; si la cantidad supera el stock responde HTTP 422 con el mensaje ``Stock insuficiente para la talla \{talla\}''.
+
+\vspace{0.3em}
+
+\textbf{Escenario 2 -- Actualización de cantidad(RF07.2)}\\
+Dado que el cliente visualiza su carrito con items,\\
+Cuando presiona ``+'' o ``$-$'' sobre una línea,\\
+Entonces el sistema valida la nueva cantidad(mínimo 1, máximo \texttt{stock\_disponible} de la talla), actualiza el detalle, recalcula subtotal y total, y refresca la vista; si la talla fue desactivada responde HTTP 422 indicando que elimine el item del carrito.
+
+\vspace{0.3em}
+
+\textbf{Escenario 3 -- Eliminar item o vaciar carrito(RF07.3)}\\
+Dado que el cliente presiona ``$\times$'' en una línea o ``Vaciar carrito'',\\
+Cuando el backend procesa la petición,\\
+Entonces el sistema elimina el detalle(o todos los detalles) y recalcula el total, respondiendo HTTP 200 con el carrito actualizado; el acceso a un detalle ajeno retorna HTTP 403.
+
+\vspace{0.3em}
+
+\textbf{Escenario 4 -- Visualización y resumen del carrito(RF07.4)}\\
+Dado que el cliente accede a \texttt{/carrito},\\
+Cuando el sistema carga el carrito activo,\\
+Entonces muestra cada item con imagen principal, nombre, color, talla, precio unitario, cantidad con controles +/−, subtotal por línea y botón eliminar; el panel de resumen muestra subtotal, ``Envío: A coordinar'' y total acumulado; si el carrito está vacío muestra el mensaje ``Tu carrito esta vacio'' y el enlace al catálogo.
+
+\vspace{0.3em}
+
+\textbf{Escenario 5 -- Validaciones y errores(RF07.5)}\\
+Dado que el cliente intenta operar el carrito sin sesión activa o con datos inválidos,\\
+Cuando el backend procesa la petición,\\
+Entonces el sistema responde HTTP 401 sin sesión, 422 ante producto/talla/cantidad inválida o stock agotado, 403 si intenta operar un detalle ajeno, y 404 si la variante no existe; el frontend muestra los mensajes vía \textit{toast} sin alterar el estado del carrito.
+
+% =====================================================
+% REQUERIMIENTOS RUP
+% =====================================================
+\subsection*{REFERIDO A ESPECIFICACIONES DE REQUERIMIENTOS FUNCIONALES RUP}
+
+\textbf{Reglas de Negocio}
+
+RN-36: Las operaciones del carrito requieren cliente autenticado con token de Laravel Sanctum; sin sesión el sistema responde HTTP 401.
+
+RN-37: Cada cliente posee un único carrito activo(\texttt{estado='activo'}) creado con \texttt{firstOrCreate}; al completar el checkout el carrito pasa a \texttt{estado='procesado'} y se conserva para auditoría.
+
+RN-38: La cantidad acumulada por par producto--talla no puede superar \texttt{stock\_disponible} de la variante; la validación se realiza dentro de una transacción con \texttt{lockForUpdate} sobre \texttt{productos} y \texttt{producto\_tallas}.
+
+RN-39: Cada detalle almacena \texttt{producto\_id}, \texttt{producto\_talla\_id}, \texttt{cantidad} y \texttt{subtotal}(\texttt{precio\_venta} del producto $\times$ cantidad); el carrito recalcula el \texttt{total} con la suma de subtotales tras cada operación.
+
+RN-40: El acceso a un detalle ajeno retorna HTTP 403 mediante la verificación \texttt{asegurarCarritoDelUsuario}; ningún cliente puede ver ni modificar carritos de otros.
+
+RN-41: La eliminación de un item o el vaciado del carrito recalcula el total inmediatamente; el paso a \texttt{estado='procesado'} preserva el histórico para el módulo de pedidos.
+
+RN-42: El carrito se entrega siempre con sus detalles, producto, imagen principal y variante cargados(\textit{eager loading}) para renderizar la vista en una sola petición HTTP.
+
+% =====================================================
+% DATOS DE ENTRADA Y SALIDA
+% =====================================================
+\subsection*{Datos de Entrada y Salida}
+
+\textbf{Datos de entrada(Agregar item al carrito)}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{3.2cm} p{2.8cm} p{1.8cm} L}
+\toprule
+\textbf{Campo} & \textbf{Tipo} & \textbf{Obligatorio} & \textbf{Validación} \\
+\midrule
+\texttt{producto\_id} & Numérico(FK) & Sí & Existencia válida en la tabla \texttt{productos}. \\
+\texttt{producto\_talla\_id} & Numérico(FK) & Sí & Existencia válida en \texttt{producto\_tallas}, debe pertenecer al producto y estar activa. \\
+\texttt{cantidad} & Entero & Sí & Mínimo 1; la suma acumulada no debe superar \texttt{stock\_disponible}. \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Datos de salida(Respuesta exitosa de la API RESTful -- HTTP 200 OK)}
+
+Respuesta estructurada en formato JSON:
+
+\begin{lstlisting}
+{
+  "message": "Producto agregado al carrito.",
+  "data": {
+    "id": 7,
+    "cliente_id": 12,
+    "estado": "activo",
+    "total": "289.00",
+    "detalles": [
+      {
+        "id": 19,
+        "producto_id": 3,
+        "producto_talla_id": 5,
+        "cantidad": 2,
+        "subtotal": "289.00",
+        "producto": {
+          "id": 3,
+          "slug": "chompa-andina",
+          "nombre": "Chompa Andina",
+          "color": "marron",
+          "precio_venta": "144.50",
+          "imagen_principal_url": "https://pub-995a9c3435824f32be793fc7273acbbe.r2.dev/productos/chompa-andina/9b3d-4e6a.png"
+        },
+        "talla": "M",
+        "stock_talla": 8
+      }
+    ]
+  }
+}
+\end{lstlisting}
+
+% =====================================================
+% MOCKUP
+% =====================================================
+\subsection*{Notas de UI/ Mockup}
+
+\begin{center}
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 1: PÁGINA \texttt{/carrito} CON LISTA DE TARJETAS(IMAGEN, NOMBRE, COLOR, TALLA, PRECIO UNITARIO, CONTROLES +/−, SUBTOTAL Y ELIMINAR) Y PANEL DE RESUMEN LATERAL CON SUBTOTAL, ENVÍO Y TOTAL]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+
+\vspace{0.4cm}
+
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 2: FICHA DE PRODUCTO DEL CATÁLOGO CON SELECTOR DE TALLA, SELECTOR DE CANTIDAD, BOTÓN ``AGREGAR AL CARRITO'' Y TOAST DE CONFIRMACIÓN]\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+
+\vspace{0.4cm}
+
+\fbox{
+    \parbox{0.95\linewidth}{
+        \centering
+        \vspace{1.0cm}
+        [CAPTURA 3: ESTADO VACÍO DE \texttt{/carrito} CON MENSAJE ``TU CARRITO ESTA VACIO'' Y ENLACE ``EXPLORAR CATÁLOGO'']\\[0.4cm]
+        \vspace{1.0cm}
+    }
+}
+\end{center}
+
+Notas: La página \texttt{/carrito} mantiene la estética del catálogo público del Sprint 6 con tarjetas verticales, imagen cuadrada, controles de cantidad accesibles y panel de resumen adhesivo. El botón ``Agregar al carrito'' solo se habilita cuando hay talla seleccionada. Se mantienen los componentes standalone de Angular con signals y la regla de responder siempre con el carrito completo para mantener una única fuente de verdad en el frontend.
+
+% =====================================================
+% DEPENDENCIAS
+% =====================================================
+\subsection*{Dependencias}
+
+\textbf{Técnicas:} Catálogo público del Sprint 6(HU-06) que lista productos y muestra la ficha con variantes por talla; tablas \texttt{carrito\_compras}, \texttt{detalle\_carrito} y \texttt{producto\_tallas} migradas en sprints previos; autenticación Laravel Sanctum del Sprint 1; campo \texttt{imagen\_principal\_url} ya expuesto por \texttt{ProductoResource}.
+
+\textbf{Negativas:} Ninguna; consume directamente los servicios ya operativos.
+
+\textbf{Historias posteriores:} SG-08(Gestión de pagos, Sprint 8) consume el carrito activo para crear el pedido y procesar el pago dentro del flujo de checkout.
+
+% =====================================================
+% TAREAS TECNICAS
+% =====================================================
+\subsection*{Tareas Técnicas(Sub-tareas)}
+
+{\small
+\begin{longtable}{p{1.2cm} p{7.9cm} p{4.2cm} p{1.7cm}}
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Tarea} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+T-46 & Revisar migraciones de \texttt{carrito\_compras} y \texttt{detalle\_carrito} con índice compuesto \texttt{(cliente\_id, estado)} y FK a \texttt{producto\_tallas}. & Cutipa Hancco Miguel Isac & 2 h \\
+T-47 & Implementar \texttt{CarritoController} con \texttt{show}, \texttt{agregar}, \texttt{actualizar}, \texttt{eliminar} y \texttt{vaciar}; transacciones con \texttt{lockForUpdate} y \texttt{recalcularTotal}. & Cutipa Hancco Miguel Isac & 4 h \\
+T-48 & Implementar \texttt{CarritoCompraResource} y \texttt{DetalleCarritoResource} con \textit{eager loading} de producto, imágenes y \texttt{productoTalla}. & Cutipa Hancco Miguel Isac & 3 h \\
+T-49 & Implementar \texttt{CarritoService} en Angular con signals y obtención reactiva del carrito. & Michelly Rocio Paja Quispe & 3 h \\
+T-50 & Maquetar \texttt{/carrito} en Angular con tarjetas de items, controles +/−, eliminar, panel de resumen y estado vacío. & Michelly Rocio Paja Quispe & 6 h \\
+T-51 & Integrar el botón ``Agregar al carrito'' en la ficha del producto del catálogo con selector de talla y cantidad. & Michelly Rocio Paja Quispe & 4 h \\
+T-52 & Manejar respuestas 422/403/401 en el frontend con \textit{toasts} y refresco del carrito sin alterar el estado previo. & Michelly Rocio Paja Quispe & 3 h \\
+T-53 & Ejecutar pruebas de integración con Postman y curl, verificando stock, concurrencia y respuestas JSON. & Cutipa Hancco Miguel Isac & 3 h \\
+
+\midrule
+\multicolumn{3}{r}{\textbf{Total estimado}} & \textbf{28 h} \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Cuadro 7: Tareas técnicas -- HU-07/ SG-07
+\end{center}
+
+% =====================================================
+% RIESGOS
+% =====================================================
+\subsection*{Riesgos Identificados}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{1.2cm} p{4.6cm} L p{2cm}}
+\toprule
+\textbf{ID} & \textbf{Riesgo} & \textbf{Mitigación} & \textbf{Probabilidad} \\
+\midrule
+R-20 & Concurrencia en la adición simultánea de items(condición de carrera sobre stock). & Transacciones con \texttt{lockForUpdate} sobre \texttt{productos} y \texttt{producto\_tallas}. & Baja \\
+R-21 & Variante de talla desactivada o sin stock durante la operación del carrito. & Validación 422 con mensaje claro, bloqueo del botón ``+'' en el frontend y eliminación sugerida del item. & Media \\
+R-22 & Carritos abandonados que crecen indefinidamente en la base de datos. & Política de un único carrito activo por cliente mediante \texttt{firstOrCreate} y job de limpieza que marca \texttt{estado='abandonado'}. & Baja \\
+R-23 & Desfase entre el stock validado en el carrito y el reservado al confirmar el pedido. & El carrito solo valida disponibilidad; el decremento real ocurre en el checkout con \texttt{lockForUpdate}, evitando carros fantasma con stock retenido. & Media \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% DIFICULTADES
+% =====================================================
+\subsection*{Dificultades}
+
+Durante la implementación se identificó que la singularización del recurso \texttt{carrito\_items} generaba rutas anidadas confusas; se optó por el prefijo \texttt{/carrito/items/\{detalle\}} con \textit{binding} implícito de \texttt{DetalleCarrito}. La concurrencia entre clientes sobre el mismo par producto--talla obligó a usar \texttt{lockForUpdate} en \texttt{Producto} y \texttt{ProductoTalla} dentro de la transacción, garantizando que el stock validado al agregar sea consistente con el stock decrementado al confirmar el pedido. Asimismo, el cálculo del total debió centralizarse en el método \texttt{recalcularTotal()} del modelo \texttt{CarritoCompra} para evitar duplicidad de lógica entre las operaciones de agregar, actualizar, eliminar y vaciar.
+
+% =====================================================
+% OBSERVACIONES
+% =====================================================
+\subsection*{Observaciones}
+
+El carrito se entrega siempre con sus relaciones cargadas(\textit{eager loading}) para renderizar la vista en una sola petición HTTP. El patrón \texttt{firstOrCreate} sobre \texttt{(cliente\_id, estado='activo')} garantiza un único carrito vigente por cliente y simplifica el flujo de checkout del Sprint 8. La validación de stock en el carrito es solo consultiva(sin reserva temporal); la reserva efectiva ocurre al confirmar el pedido, evitando carros fantasma con stock retenido y simplificando la concurrencia.
+
+\subsection*{Firmas de Conformidad}
+
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{ccc}
+\rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} \\
+Miguel Isac Cutipa Hancco & Michelly Rocio Paja Quispe & Delia Hancco Lope \\
+Programador responsable & Scrum Master & Stakeholder/ Administradora
+\end{tabular}
+\end{center}
+
+\clearpage
+
+% =====================================================
+% ACTA DE SPRINT PLANNING
+% =====================================================
+\section*{ACTA DE REUNIÓN DE SPRINT PLANNING}
+
+\subsection*{No. SP-07 -- Sprint No. 7 -- Semana 7}
+
+\begin{center}
+Sistema Web E-commerce con Integración de Inteligencia Artificial para la Empresa Hancco Artesanías
+\end{center}
+
+% =====================================================
+% INFORMACION GENERAL
+% =====================================================
+\subsection*{Información General}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Campo} & \textbf{Descripción} \\
+\midrule
+Proyecto & Sistema Web E-commerce Hancco Artesanías \\
+Tipo de reunión & Sprint Planning(Reunión de planificación del Sprint) \\
+Sprint No. & 7(siete) \\
+Duración del Sprint & 1 semana(del 12/10/2026 al 17/10/2026) \\
+Fecha de realización & 10 de octubre de 2026 \\
+Hora de inicio & 12:00 horas \\
+Hora de cierre & 13:45 horas \\
+Lugar & Oficina de desarrollo proporcionada por Hancco Artesanías \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Product Owner & Miguel Isac Cutipa Hancco \\
+Equipo de desarrollo & -- Miguel Isac Cutipa Hancco (Product Owner/ Development Team)\newline -- Michelly Rocio Paja Quispe (Development Team) \\
+Metodología & Híbrida RUP-Scrum(Scrum con sprints semanales) \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% ASISTENTES
+% =====================================================
+\subsection*{Asistentes}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{c p{5.5cm} L c}
+\toprule
+\textbf{N°} & \textbf{Nombre y Apellido} & \textbf{Rol} & \textbf{Asistencia} \\
+\midrule
+1 & Miguel Isac Cutipa Hancco & Product Owner/ Development Team & Presente \\
+2 & Michelly Rocio Paja Quispe & Scrum Master/ Development Team & Presente \\
+3 & Delia Hancco Lope & Stakeholder & Presente \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% ORDEN DEL DIA
+% =====================================================
+\subsection*{Orden del Día}
+
+\begin{enumerate}
+    \item Revisión de los resultados obtenidos en el Sprint 6(Visualización del Catálogo Público).
+    \item Verificación del flujo público: catálogo, ficha de producto, variantes por talla y descripción IA.
+    \item Revisión y ratificación del Product Backlog priorizado.
+    \item Selección de la historia de usuario para el Sprint 7 y formulación del Sprint Goal.
+    \item Estimación de esfuerzo, desglose técnico de actividades y consolidación del Sprint Backlog.
+    \item Actualización y ratificación del Definition of Done(DoD).
+    \item Análisis de impedimentos y riesgos asociados a la concurrencia de stock.
+    \item Asignación formal de compromisos y acuerdos para la iteración semanal.
+\end{enumerate}
+
+% =====================================================
+% OBJETIVO
+% =====================================================
+\subsection*{Objetivo de la Reunión}
+
+\textbf{Gestión de Carrito de Compras:} Planificar y comprometer la implementación del módulo de carrito del cliente autenticado, con validación de stock en tiempo real y operaciones de agregar, actualizar, eliminar y vaciar(HU-07/ SG-07), integrado al catálogo público del Sprint 6.
+
+\textbf{Sprint 7:} Establecer el compromiso formal del equipo de desarrollo para la ejecución de la séptima iteración semanal del proyecto conforme a la metodología híbrida RUP-Scrum.
+
+% =====================================================
+% DESARROLLO
+% =====================================================
+\subsection*{Desarrollo de la Reunión}
+
+\textbf{Cierre formal del Sprint 6 e inicio del Sprint 7}\\
+Con fecha 10 de octubre de 2026, tras haber culminado con éxito la Sprint Review del Sprint 6 donde se constató el funcionamiento del catálogo público con filtros por categoría, ficha de producto con galería de imágenes reales e IA y descripción IA generada por Gemini, se da inicio formal a la planificación del Sprint 7 del proyecto ``Sistema Web E-commerce con Integración de Inteligencia Artificial para la Empresa Hancco Artesanías''.
+
+\textbf{Verificación del flujo público de cliente}\\
+El equipo presenta las evidencias del Sprint 6: catálogo público responsivo, ficha del producto con galería, descripción IA y selector de talla con stock por variante. Se confirma que el siguiente paso funcional es el carrito de compras para el cliente autenticado, base del checkout que se abordará en el Sprint 8.
+
+\textbf{Revisión de roles Scrum}\\
+Se ratifican los roles y responsabilidades del equipo de trabajo:
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{5cm} L}
+\toprule
+\textbf{Rol} & \textbf{Responsable} \\
+\midrule
+Product Owner & Miguel Isac Cutipa Hancco \\
+Scrum Master & Michelly Rocio Paja Quispe \\
+Equipo de Desarrollo & Miguel Isac Cutipa Hancco, Michelly Rocio Paja Quispe \\
+Stakeholders & Delia Hancco Lope \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+\textbf{Plan de comunicación y dinámica de trabajo}\\
+Se mantienen vigentes los acuerdos operativos establecidos en sprints anteriores:
+
+\begin{itemize}
+    \item Daily Scrum: Lunes a viernes a las 08:30 horas de manera virtual(15 minutos).
+    \item Sprint Review y Retrospective: Sábado 17 de octubre de 2026 a las 10:00 y 11:30 horas respectivamente.
+    \item Tablero de seguimiento: Actualización continua de estados en GitHub Projects(To Do, In Progress, Review, Done).
+    \item Control de versiones: Pull requests con revisión obligatoria antes de merge a la rama principal(main).
+\end{itemize}
+
+\textbf{Plataforma tecnológica y herramientas aplicadas al Sprint 7}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.8cm} L}
+\toprule
+\textbf{Categoría} & \textbf{Herramienta/ Tecnología} \\
+\midrule
+Frontend & Angular(TypeScript, signals, componentes standalone, HttpClient, FormsModule) \\
+Backend & Laravel(PHP, Eloquent ORM, DB transactions, \texttt{lockForUpdate}) \\
+Base de Datos & MySQL(Tablas \texttt{carrito\_compras}, \texttt{detalle\_carrito}, \texttt{productos}, \texttt{producto\_tallas}) \\
+Autenticación & Laravel Sanctum(Sprint 1) \\
+Control de Versiones & Git+ GitHub \\
+Pruebas de API & Postman y curl \\
+IDE de desarrollo & Visual Studio Code \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% PRODUCT BACKLOG
+% =====================================================
+\subsection*{Product Backlog priorizado}
+
+El Product Owner y el equipo revisaron el estado del Product Backlog, ratificando el progreso del sistema:
+
+{\small
+\begin{longtable}{p{1.2cm} p{6.8cm} p{1.6cm} p{1.8cm} p{1.4cm} p{2.2cm}}
+\toprule
+\textbf{ID} & \textbf{Historia de Usuario} & \textbf{Prioridad} & \textbf{Esfuerzo} & \textbf{Sprint} & \textbf{Estado} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{ID} & \textbf{Historia de Usuario} & \textbf{Prioridad} & \textbf{Esfuerzo} & \textbf{Sprint} & \textbf{Estado} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+SG-01 & Autenticación del administrador & Alta & 3 pts & 1 & Completado \\
+SG-02 & Gestión de inventario & Alta & 5 pts & 2 & Completado \\
+SG-03 & Almacenamiento multimedia(Cloudflare S3) & Alta & 4 pts & 3 & Completado \\
+SG-04 & Generación de imágenes con IA & Alta & 5 pts & 4 & Completado \\
+SG-05 & Generación de descripciones con IA & Alta & 4 pts & 5 & Completado \\
+SG-06 & Visualización de catálogo & Alta & 4 pts & 6 & Completado \\
+SG-07 & Gestión de carrito de compras & Alta & 5 pts & 7 & En proceso \\
+SG-08 & Gestión de pagos & Alta & 5 pts & 8 & Pendiente \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Tabla 9: Seguimiento del Product Backlog -- Sistema Web E-commerce Hancco Artesanías
+\end{center}
+
+% =====================================================
+% SELECCION
+% =====================================================
+\subsection*{Selección de historias para el Sprint 7}
+
+Para la presente iteración se selecciona de forma unánime la historia de usuario:
+
+SG-07 -- Gestión de Carrito de Compras: ``Como cliente autenticado, quiero gestionar un carrito de compras agregando productos con talla y cantidad, ajustando y eliminando items, visualizando el total acumulado, con validación de stock en tiempo real.''
+
+Justificación de selección: El carrito constituye el paso previo al checkout y habilita el flujo comercial completo del e-commerce. Su implementación consume directamente el catálogo del Sprint 6 y deja la base sobre la que el Sprint 8 construirá el pedido y el pago con Culqi.
+
+% =====================================================
+% SPRINT GOAL
+% =====================================================
+\subsection*{Sprint Goal}
+
+\begin{quote}
+Sprint Goal(Meta del Sprint 7): ``Implementar la gestión del carrito de compras del Sistema Web E-commerce Hancco Artesanías, permitiendo al cliente autenticado agregar productos con talla y cantidad, actualizar cantidades, eliminar items y visualizar el total acumulado con validación de stock en tiempo real mediante transacciones con bloqueo pesimista, dejando operativo el carrito al término de la semana.''
+\end{quote}
+
+% =====================================================
+% SPRINT BACKLOG
+% =====================================================
+\subsection*{Sprint Backlog}
+
+El Sprint Backlog acordado para dar cumplimiento a la meta del sprint se detalla a continuación:
+
+{\small
+\begin{longtable}{p{1.2cm} p{7.9cm} p{4.2cm} p{1.7cm}}
+\toprule
+\textbf{Tarea} & \textbf{Descripción} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{Tarea} & \textbf{Descripción} & \textbf{Responsable} & \textbf{Estimación} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+T-46 & Revisar migraciones de \texttt{carrito\_compras} y \texttt{detalle\_carrito} con índice compuesto \texttt{(cliente\_id, estado)} y FK a \texttt{producto\_tallas}. & Cutipa Hancco Miguel Isac & 2 h \\
+T-47 & Implementar \texttt{CarritoController} con \texttt{show}, \texttt{agregar}, \texttt{actualizar}, \texttt{eliminar} y \texttt{vaciar}; transacciones con \texttt{lockForUpdate} y \texttt{recalcularTotal}. & Cutipa Hancco Miguel Isac & 4 h \\
+T-48 & Implementar \texttt{CarritoCompraResource} y \texttt{DetalleCarritoResource} con \textit{eager loading} de producto, imágenes y \texttt{productoTalla}. & Cutipa Hancco Miguel Isac & 3 h \\
+T-49 & Implementar \texttt{CarritoService} en Angular con signals y obtención reactiva del carrito. & Michelly Rocio Paja Quispe & 3 h \\
+T-50 & Maquetar \texttt{/carrito} en Angular con tarjetas de items, controles +/−, eliminar, panel de resumen y estado vacío. & Michelly Rocio Paja Quispe & 6 h \\
+T-51 & Integrar el botón ``Agregar al carrito'' en la ficha del producto del catálogo con selector de talla y cantidad. & Michelly Rocio Paja Quispe & 4 h \\
+T-52 & Manejar respuestas 422/403/401 en el frontend con \textit{toasts} y refresco del carrito sin alterar el estado previo. & Michelly Rocio Paja Quispe & 3 h \\
+T-53 & Ejecutar pruebas de integración con Postman y curl, verificando stock, concurrencia y respuestas JSON. & Cutipa Hancco Miguel Isac & 3 h \\
+
+\midrule
+\multicolumn{3}{r}{\textbf{Total horas estimadas}} & \textbf{28 h} \\
+
+\end{longtable}
+}
+
+\begin{center}
+\small Tabla 10: Sprint Backlog -- Sprint 7(SG-07)
+\end{center}
+
+% =====================================================
+% ESTIMACION
+% =====================================================
+\subsection*{Estimación de esfuerzo y capacidad}
+
+Story points SG-07: 5 puntos(escala Fibonacci).
+
+Esfuerzo planificado: 28 horas-hombre distribuidas en 5 días hábiles.
+
+Capacidad del equipo: 2 integrantes × 4 horas/día × 5 días = 40 horas disponibles.
+
+Se cuenta con un margen de holgura de 12 horas para imprevistos técnicos, complementado con la experiencia del equipo en transacciones y \textit{eager loading} adquirida en sprints anteriores.
+
+% =====================================================
+% DEFINITION OF DONE
+% =====================================================
+\subsection*{Definition of Done(DoD)}
+
+Se ratifican y amplían los criterios que debe satisfacer la historia para declararse completada:
+
+\begin{enumerate}
+    \item El código fuente está completamente implementado y fusionado a la rama de desarrollo en GitHub sin advertencias ni conflictos.
+    \item Los endpoints del carrito responden HTTP 200, 422, 401 y 403 según corresponda, validados con Postman y curl.
+    \item Las operaciones de agregar, actualizar, eliminar y vaciar recalculan el total del carrito en cada respuesta.
+    \item La validación de stock usa \texttt{lockForUpdate} en transacción para evitar condiciones de carrera sobre \texttt{productos} y \texttt{producto\_tallas}.
+    \item Cada respuesta entrega el carrito con detalles, producto e imagen principal cargados(\textit{eager loading}).
+    \item La página \texttt{/carrito} muestra items, controles de cantidad, subtotales y resumen con total; y el estado vacío con enlace al catálogo.
+    \item La ficha del producto del catálogo integra el botón ``Agregar al carrito'' con selector de talla y cantidad.
+    \item Los errores se muestran vía \textit{toast} sin alterar el estado previo del carrito.
+    \item Los criterios de aceptación de la historia fueron validados de forma conjunta con el Product Owner y la Administradora.
+    \item No existen defectos críticos abiertos ni bloqueos en las pruebas funcionales.
+\end{enumerate}
+
+% =====================================================
+% IMPEDIMENTOS
+% =====================================================
+\subsection*{Impedimentos y riesgos identificados}
+
+Riesgo: Concurrencia en la adición simultánea al mismo par producto--talla.\\
+Acción mitigadora: Transacciones con \texttt{lockForUpdate} sobre \texttt{productos} y \texttt{producto\_tallas} dentro del agregar y actualizar.
+
+Impedimento potencial: Variantes de talla desactivadas mientras el cliente mantiene el carrito abierto.\\
+Acción mitigadora: Validación 422 con mensaje claro y bloqueo del botón ``+'' en el frontend, sugiriendo eliminar el item.
+
+Impedimento potencial: Carritos abandonados que acumulan registros inactivos.\\
+Acción mitigadora: Política de un único carrito activo por cliente con \texttt{firstOrCreate} y job de limpieza que marca \texttt{estado='abandonado'}.
+
+% =====================================================
+% ACUERDOS
+% =====================================================
+\subsection*{Acuerdos}
+
+\begin{itemize}
+    \item El equipo se compromete a entregar al cierre del Sprint 7 el módulo de carrito plenamente funcional, integrado al catálogo público y protegido por Laravel Sanctum.
+    \item Las reuniones Daily Scrum se mantendrán a las 08:30 horas vía Google Meet de lunes a viernes.
+    \item La Sprint Review se llevará a cabo el sábado 17 de octubre de 2026 a las 10:00 horas con la presencia de la Sra. Delia Hancco.
+\end{itemize}
+
+% =====================================================
+% COMPROMISOS
+% =====================================================
+\subsection*{Compromisos}
+
+{\small
+\begin{longtable}{c p{7.8cm} p{4.2cm} p{2.0cm}}
+\toprule
+\textbf{N°} & \textbf{Compromiso} & \textbf{Responsable} & \textbf{Fecha límite} \\
+\midrule
+\endfirsthead
+
+\toprule
+\textbf{N°} & \textbf{Compromiso} & \textbf{Responsable} & \textbf{Fecha límite} \\
+\midrule
+\endhead
+
+\bottomrule
+\endlastfoot
+
+C-26 & Entregar migraciones, \texttt{CarritoController}, Resources y transacciones con \texttt{lockForUpdate}. & Miguel Isac Cutipa Hancco & 13/10/2026 \\
+C-27 & Entregar \texttt{CarritoService} y la página \texttt{/carrito} con tarjetas, controles y resumen. & Michelly Rocio Paja Quispe & 15/10/2026 \\
+C-28 & Integrar el botón ``Agregar al carrito'' en la ficha del producto del catálogo. & Michelly Rocio Paja Quispe & 16/10/2026 \\
+C-29 & Ejecutar las pruebas de integración del sprint y realizar la Sprint Review y Retrospectiva. & Michelly Rocio Paja Quispe & 17/10/2026 \\
+
+\end{longtable}
+}
+
+% =====================================================
+% PROXIMA REUNION
+% =====================================================
+\subsection*{Próxima Reunión}
+
+\begin{center}
+\small
+\begin{tabularx}{\textwidth}{p{4.5cm} L}
+\toprule
+\textbf{Detalle} & \textbf{Descripción} \\
+\midrule
+Tipo de reunión & Daily Scrum(Lunes 12/10/2026 -- 08:30 horas) \\
+Sprint Review No. 07 & Sábado 17/10/2026 -- 10:00 horas \\
+Sprint Retrospective No. 07 & Sábado 17/10/2026 -- 11:30 horas \\
+Sprint Planning No. 08 & Sábado 17/10/2026 -- 12:00 horas \\
+Lugar & Oficina de desarrollo proporcionada por Hancco Artesanías \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+% =====================================================
+% FIRMAS ACTA
+% =====================================================
+\subsection*{Firmas de Conformidad}
+
+\begin{center}
+\renewcommand{\arraystretch}{2}
+\begin{tabular}{ccc}
+\rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} & \rule{4.5cm}{0.4pt} \\
+Miguel Isac Cutipa Hancco & Michelly Rocio Paja Quispe & Delia Hancco Lope \\
+Product Owner/ Development Team & Scrum Master/ Development Team & Stakeholder/ Administradora
+\end{tabular}
+\end{center}
+
+\end{document}

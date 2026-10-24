@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductoService, ProductoFiltros } from '../../core/services/producto.service';
 import { CategoriaService } from '../../core/services/categoria.service';
+import { CheckoutService } from '../../core/services/checkout.service';
 import { Producto } from '../../core/models/producto.model';
 import { Categoria } from '../../core/models/categoria.model';
 import { ProductCardComponent } from '../../shared/components/product-card/product-card.component';
@@ -18,6 +19,12 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
         <h1>Catalogo</h1>
         <p class="text-muted">{{ total() }} productos</p>
       </header>
+
+      @if (waGenerico()) {
+        <a class="wa-note" [href]="waGenerico()" target="_blank" rel="noopener noreferrer">
+          💬 ¿Dudas de precio, talla o disponibilidad? Escríbenos por WhatsApp — lo que ves acá puede variar.
+        </a>
+      }
 
       <div class="filters-card">
         <button
@@ -135,6 +142,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
 export class CatalogoComponent implements OnInit {
   private productoSvc = inject(ProductoService);
   private categoriaSvc = inject(CategoriaService);
+  private checkoutSvc = inject(CheckoutService);
 
   productos = signal<Producto[]>([]);
   categorias = signal<Categoria[]>([]);
@@ -157,11 +165,24 @@ export class CatalogoComponent implements OnInit {
   );
 
   ngOnInit(): void {
+    if (!this.checkoutSvc.config()) {
+      this.checkoutSvc.obtenerConfig().subscribe({ error: () => {} });
+    }
+
     this.categoriaSvc.listarPublico().subscribe({
       next: (res) => this.categorias.set(res.data ?? []),
       error: () => this.categorias.set([]),
     });
     this.cargar();
+  }
+
+  waGenerico(): string {
+    const numero = (this.checkoutSvc.config()?.whatsapp_tienda ?? '').replace(/\D/g, '');
+    if (!numero) return '';
+
+    const msg =
+      'Hola Hancco Artesanias! Estoy viendo el catalogo y quisiera consultar por precios, tallas y disponibilidad.';
+    return `https://wa.me/${numero}?text=${encodeURIComponent(msg)}`;
   }
 
   onFiltro(): void {

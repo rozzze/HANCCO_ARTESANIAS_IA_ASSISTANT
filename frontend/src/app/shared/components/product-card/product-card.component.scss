@@ -1,7 +1,6 @@
 .product-card {
-  display: block;
-  text-decoration: none;
-  color: inherit;
+  display: flex;
+  flex-direction: column;
   height: 100%;
   transition: transform var(--transition), box-shadow var(--transition), border-color var(--transition);
 
@@ -10,6 +9,13 @@
     box-shadow: var(--shadow-lg);
     border-color: rgba(138, 75, 42, 0.22);
   }
+}
+
+.card-link,
+.name-link {
+  display: block;
+  text-decoration: none;
+  color: inherit;
 }
 
 .image-wrap {
@@ -66,6 +72,10 @@
 
 .info {
   padding: 1rem 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
 }
 
 .category {
@@ -110,6 +120,7 @@
   font-weight: 700;
   color: var(--color-primary);
   letter-spacing: -0.01em;
+  white-space: nowrap;
 }
 
 .material {
@@ -122,4 +133,27 @@
   max-width: 52%;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+.card-actions {
+  margin-top: auto;
+  padding-top: 0.875rem;
+}
+
+.btn-wa {
+  background: #25D366;
+  color: var(--color-white);
+  border-color: transparent;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.28);
+
+  &:hover {
+    background: #1ebe5d;
+    color: var(--color-white);
+    box-shadow: 0 6px 16px rgba(37, 211, 102, 0.36);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #128C4B;
+    outline-offset: 2px;
+  }
 }
