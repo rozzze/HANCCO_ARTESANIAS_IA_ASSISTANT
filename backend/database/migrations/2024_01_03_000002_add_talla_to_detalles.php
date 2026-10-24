@@ -22,12 +22,18 @@ return new class extends Migration {
             WHERE dc.producto_talla_id IS NULL
         ');
 
+        // 1) Primero crear el nuevo unique (empieza con carrito_id, asi la FK
+        //    de carrito_id sigue teniendo un indice que la soporte).
         if (!Schema::hasIndex('detalle_carrito', 'detalle_carrito_unico')) {
             Schema::table('detalle_carrito', function (Blueprint $table) {
-                if (Schema::hasIndex('detalle_carrito', 'detalle_carrito_carrito_id_producto_id_unique')) {
-                    $table->dropUnique('detalle_carrito_carrito_id_producto_id_unique');
-                }
                 $table->unique(['carrito_id', 'producto_id', 'producto_talla_id'], 'detalle_carrito_unico');
+            });
+        }
+
+        // 2) Recien ahora se puede borrar el unique viejo.
+        if (Schema::hasIndex('detalle_carrito', 'detalle_carrito_carrito_id_producto_id_unique')) {
+            Schema::table('detalle_carrito', function (Blueprint $table) {
+                $table->dropUnique('detalle_carrito_carrito_id_producto_id_unique');
             });
         }
 
@@ -82,12 +88,23 @@ return new class extends Migration {
         }
 
         if (Schema::hasColumn('detalle_carrito', 'producto_talla_id')) {
-            Schema::table('detalle_carrito', function (Blueprint $table) {
-                if (Schema::hasIndex('detalle_carrito', 'detalle_carrito_unico')) {
+            // 1) Restaurar el unique viejo antes de tocar el nuevo.
+            if (!Schema::hasIndex('detalle_carrito', 'detalle_carrito_carrito_id_producto_id_unique')) {
+                Schema::table('detalle_carrito', function (Blueprint $table) {
+                    $table->unique(['carrito_id', 'producto_id']);
+                });
+            }
+
+            // 2) Borrar el unique nuevo (usa producto_talla_id).
+            if (Schema::hasIndex('detalle_carrito', 'detalle_carrito_unico')) {
+                Schema::table('detalle_carrito', function (Blueprint $table) {
                     $table->dropUnique('detalle_carrito_unico');
-                }
+                });
+            }
+
+            // 3) Ahora si, quitar la columna y su FK.
+            Schema::table('detalle_carrito', function (Blueprint $table) {
                 $table->dropConstrainedForeignId('producto_talla_id');
-                $table->unique(['carrito_id', 'producto_id']);
             });
         }
     }
