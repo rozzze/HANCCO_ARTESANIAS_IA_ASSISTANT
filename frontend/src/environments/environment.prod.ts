@@ -1,5 +1,5 @@
 export const environment = {
   production: true,
-  apiUrl: 'https://hancco-backend.laravel.cloud/api',
+  apiUrl: 'https://hancco-artesanias-ia-assistant-production-ujqnvf.laravel.cloud',
   storageUrl: '',
 };
