@@ -33,8 +33,8 @@ import { RouterLink } from '@angular/router';
           <div>
             <h4>Contacto</h4>
             <ul class="contact-list">
-              <li><span class="ci" aria-hidden="true">&#9993;</span> contacto&#64;hancco.com</li>
-              <li><span class="ci" aria-hidden="true">&#9742;</span> +51 999 888 777</li>
+              <li><span class="ci" aria-hidden="true">&#9993;</span> contacto&#64;hanccoartesanias@gmail.com</li>
+              <li><span class="ci" aria-hidden="true">&#9742;</span> +51 982 287 068</li>
               <li><span class="ci" aria-hidden="true">&#128205;</span> Arequipa, Peru &mdash; a pasos de la Plaza de Armas</li>
             </ul>
           </div>
