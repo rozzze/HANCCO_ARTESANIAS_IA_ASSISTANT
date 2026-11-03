@@ -1,71 +1,113 @@
+/* =========================================================
+   Header — estilo prototipo "Hancco Artesanias"
+   ========================================================= */
+
+:host {
+  --hv-cream: #fbf5ea;
+  --hv-green: #3f5b45;
+  --hv-green-dark: #2a3f30;
+  --hv-terra: #b8502f;
+  --hv-terra-dark: #9a3f22;
+  --hv-gold: #d4a24c;
+  --hv-gold-dark: #a8782e;
+  --hv-ink: #2b2620;
+  --hv-font: var(--font-display, 'Playfair Display', Georgia, serif);
+
+  display: block;
+}
+
 .header {
-  background: rgba(255, 255, 255, 0.82);
-  backdrop-filter: saturate(180%) blur(14px);
-  -webkit-backdrop-filter: saturate(180%) blur(14px);
-  border-bottom: 1px solid var(--color-border);
+  background: rgba(248, 239, 224, 0.88);
+  backdrop-filter: saturate(160%) blur(14px);
+  -webkit-backdrop-filter: saturate(160%) blur(14px);
+  border-bottom: 1px solid rgba(43, 38, 32, 0.08);
   position: sticky;
   top: 0;
   z-index: 100;
-  box-shadow: var(--shadow-sm);
+  box-shadow: 0 6px 20px -16px rgba(43, 38, 32, 0.4);
+
+  /* Barra superior verde (como en el prototipo) */
+  &::before {
+    content: 'Prendas de fibra de alpaca  \00B7  Hecho a mano en Arequipa';
+    display: block;
+    background: linear-gradient(90deg, var(--hv-green-dark), var(--hv-green), var(--hv-green-dark));
+    color: var(--hv-cream);
+    text-align: center;
+    font-size: 0.625rem;
+    font-weight: 500;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding: 0.4rem 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
 }
 
 .header-inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0.875rem 1.5rem;
+  padding: 0.75rem 1.5rem;
   gap: 2rem;
 }
 
+/* === Marca === */
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  font-family: var(--font-display);
+  gap: 0.5rem;
+  font-family: var(--hv-font);
   text-decoration: none;
-  color: var(--color-text);
+  color: var(--hv-ink);
 
   .brand-mark {
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    width: 38px;
-    height: 38px;
-    border-radius: 12px;
-    background: var(--gradient-warm);
-    color: var(--color-white);
-    font-weight: 700;
-    font-size: 1.1875rem;
-    box-shadow: 0 2px 8px rgba(138, 75, 42, 0.28);
-    transition: transform var(--transition), box-shadow var(--transition);
+    width: auto;
+    height: auto;
+    background: none;
+    box-shadow: none;
+    font-size: 0;           /* oculta la "H" y usa la estrella */
+    line-height: 1;
+    transition: transform 0.3s ease;
+
+    &::before {
+      content: '\2726';
+      font-size: 1.5rem;
+      color: var(--hv-terra);
+    }
   }
 
-  &:hover .brand-mark {
-    transform: translateY(-1px) rotate(-3deg);
-    box-shadow: 0 5px 14px rgba(138, 75, 42, 0.36);
-  }
+  &:hover .brand-mark { transform: rotate(72deg); }
 
   .brand-text {
     display: flex;
     flex-direction: column;
-    line-height: 1.1;
+    line-height: 1.05;
   }
 
   .brand-name {
-    font-size: 1.375rem;
+    font-size: 1.5rem;
     font-weight: 700;
-    color: var(--color-text);
+    color: var(--hv-ink);
     letter-spacing: -0.01em;
   }
 
   .brand-tag {
-    font-size: 0.75rem;
-    color: var(--color-text-muted);
-    font-style: italic;
-    letter-spacing: 0.02em;
+    font-family: var(--font-body, system-ui, sans-serif);
+    font-size: 0.5625rem;
+    font-style: normal;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.26em;
+    color: var(--hv-gold-dark);
+    margin-top: 2px;
   }
 }
 
+/* === Navegacion === */
 .nav {
   display: flex;
   gap: 1.75rem;
@@ -74,43 +116,43 @@
   justify-content: center;
 
   a {
-    color: var(--color-text);
+    color: var(--hv-ink);
     font-weight: 500;
-    font-size: 0.9375rem;
+    font-size: 0.875rem;
     padding: 0.5rem 0;
     position: relative;
     white-space: nowrap;
-    transition: color var(--transition);
+    transition: color 0.2s ease;
 
     &::after {
       content: '';
       position: absolute;
       bottom: 0;
-      left: 0;
-      right: 0;
+      left: 50%;
+      width: 18px;
       height: 2px;
       border-radius: 2px;
-      background: var(--gradient-warm);
-      transform: scaleX(0);
-      transform-origin: center;
-      transition: transform var(--transition);
+      background: linear-gradient(90deg, var(--hv-terra), var(--hv-gold));
+      transform: translateX(-50%) scaleX(0);
+      transition: transform 0.25s ease;
     }
 
-    &:hover { color: var(--color-primary); }
-    &:hover::after { transform: scaleX(0.55); }
+    &:hover { color: var(--hv-terra); }
+    &:hover::after { transform: translateX(-50%) scaleX(0.6); }
 
     &.active {
-      color: var(--color-primary);
+      color: var(--hv-terra);
       font-weight: 600;
-      &::after { transform: scaleX(1); }
+      &::after { transform: translateX(-50%) scaleX(1); }
     }
   }
 }
 
+/* === Acciones === */
 .actions {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: 0.875rem;
   flex: 0 0 auto;
 }
 
@@ -121,38 +163,36 @@
   justify-content: center;
   width: 42px;
   height: 42px;
-  border-radius: var(--radius-full);
-  background: var(--color-bg-alt);
-  color: var(--color-text);
-  font-size: 1.25rem;
-  border: 1px solid var(--color-border);
-  transition: background var(--transition), color var(--transition), transform var(--transition), border-color var(--transition);
+  border-radius: 999px;
+  background: var(--hv-terra);
+  color: var(--hv-cream);
+  font-size: 1.125rem;
+  border: none;
+  box-shadow: 0 8px 18px -8px rgba(184, 80, 47, 0.75);
+  transition: background 0.2s ease, transform 0.2s ease;
 
   &:hover {
-    background: var(--color-primary);
-    border-color: var(--color-primary);
-    color: var(--color-white);
+    background: var(--hv-green);
     transform: translateY(-1px);
   }
 }
 
 .cart-badge {
   position: absolute;
-  top: -4px;
-  right: -4px;
-  background: var(--color-accent);
-  color: var(--color-white);
+  top: -5px;
+  right: -5px;
+  background: var(--hv-gold);
+  color: var(--hv-ink);
   font-size: 0.6875rem;
   font-weight: 700;
   min-width: 19px;
   height: 19px;
-  border-radius: var(--radius-full);
+  border-radius: 999px;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 0 4px;
-  border: 2px solid var(--color-surface);
-  box-shadow: 0 2px 6px rgba(192, 85, 47, 0.4);
+  border: 2px solid #f8efe0;
 }
 
 .user-menu {
@@ -161,19 +201,37 @@
   gap: 0.75rem;
 
   .user-name {
-    font-size: 0.875rem;
-    color: var(--color-text);
+    font-size: 0.8125rem;
+    color: var(--hv-ink);
     font-weight: 500;
   }
 }
 
 .btn-sm {
-  padding: 0.5rem 1rem;
-  font-size: 0.875rem;
+  padding: 0.5rem 1.1rem;
+  font-size: 0.8125rem;
+  border-radius: 999px;
+  font-weight: 600;
+}
+
+.actions .btn-primary {
+  background: var(--hv-terra);
+  border: 1px solid var(--hv-terra);
+  color: var(--hv-cream);
+  box-shadow: 0 8px 18px -8px rgba(184, 80, 47, 0.7);
+  &:hover { background: var(--hv-terra-dark); border-color: var(--hv-terra-dark); }
+}
+
+.actions .btn-secondary {
+  background: transparent;
+  border: 1px solid rgba(63, 91, 69, 0.45);
+  color: var(--hv-green);
+  &:hover { background: var(--hv-green); border-color: var(--hv-green); color: var(--hv-cream); }
 }
 
 @media (max-width: 768px) {
-  .header-inner { gap: 0.75rem; padding: 0.75rem 1rem; }
+  .header::before { font-size: 0.5625rem; letter-spacing: 0.1em; }
+  .header-inner { gap: 0.75rem; padding: 0.625rem 1rem; }
   .nav {
     gap: 1rem;
     justify-content: flex-start;
@@ -184,9 +242,9 @@
     &::-webkit-scrollbar { display: none; }
   }
   .nav a { font-size: 0.8125rem; }
-  .brand-mark { width: 34px; height: 34px; font-size: 1.0625rem; border-radius: 10px; }
-  .brand-name { font-size: 1.1875rem; }
-  .brand-tag { display: none; }
+  .brand .brand-mark::before { font-size: 1.25rem; }
+  .brand .brand-name { font-size: 1.25rem; }
+  .brand .brand-tag { display: none; }
   .user-name { display: none; }
-  .cart-btn { width: 38px; height: 38px; font-size: 1.125rem; }
+  .cart-btn { width: 38px; height: 38px; font-size: 1rem; }
 }

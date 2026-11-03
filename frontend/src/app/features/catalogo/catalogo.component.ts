@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, OnDestroy, inject, signal, computed } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ProductoService, ProductoFiltros } from '../../core/services/producto.service';
@@ -14,10 +14,71 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [CommonModule, FormsModule, ProductCardComponent],
   template: `
+    <section class="hero">
+      <div class="container hero-inner">
+        <div class="hero-text">
+          <span class="hero-badge">Nueva colección</span>
+          <h1 class="hero-title">Tradición que se viste de Arequipa</h1>
+          <p class="hero-sub">Prendas tradicionales confeccionadas con telas de calidad, a pasos de la Plaza de Armas.</p>
+          <div class="hero-actions">
+            <button type="button" class="btn-hero" (click)="irAProductos()">Ver colección</button>
+            <span class="hero-dots" aria-hidden="true"><i class="on"></i><i></i><i></i></span>
+          </div>
+        </div>
+
+        @if (visibles().length > 0) {
+          <div class="hero-carousel" (mouseenter)="pausar()" (mouseleave)="reanudar()">
+            @if (destacados().length > 1) {
+              <button type="button" class="car-btn" aria-label="Anterior" (click)="mover(-1)">&#8249;</button>
+            }
+            <div class="car-track">
+              @for (item of visibles(); track item.p.id + '-' + item.pos) {
+                <figure class="car-card" [class.center]="item.pos === 'center'">
+                  <img [src]="imagenUrl(item.p)" [alt]="item.p.nombre" loading="lazy" decoding="async">
+                  <figcaption>
+                    <span class="car-name">{{ item.p.nombre }}</span>
+                    <span class="car-price">S/ {{ item.p.precio_venta | number:'1.2-2' }}</span>
+                  </figcaption>
+                </figure>
+              }
+            </div>
+            @if (destacados().length > 1) {
+              <button type="button" class="car-btn" aria-label="Siguiente" (click)="mover(1)">&#8250;</button>
+            }
+          </div>
+        } @else {
+          <div class="hero-cards" aria-hidden="true">
+            <div class="hc hc-1"><span>Tradicional</span></div>
+            <div class="hc hc-2"><span>Artesanal</span></div>
+            <div class="hc hc-3"><span>Calidad</span></div>
+          </div>
+        }
+      </div>
+    </section>
+
     <div class="container page">
-      <header class="page-head">
-        <h1>Catalogo</h1>
-        <p class="text-muted">{{ total() }} productos</p>
+      <header class="page-head" id="productos">
+        <div class="page-title">
+          <h2>Catálogo</h2>
+          <p class="text-muted">{{ total() }} productos</p>
+        </div>
+
+        <div class="cat-pills" role="group" aria-label="Categorías">
+          <button
+            type="button"
+            class="pill"
+            [class.active]="categoriaId === undefined || categoriaId === null"
+            (click)="seleccionarCategoria(undefined)"
+          >Todas</button>
+          @for (c of categorias(); track c.id) {
+            <button
+              type="button"
+              class="pill"
+              [class.active]="categoriaId === c.id"
+              (click)="seleccionarCategoria(c.id)"
+            >{{ c.nombre }}</button>
+          }
+        </div>
       </header>
 
       @if (waGenerico()) {
@@ -139,7 +200,7 @@ import { ProductCardComponent } from '../../shared/components/product-card/produ
   `,
   styleUrls: ['./catalogo.component.scss'],
 })
-export class CatalogoComponent implements OnInit {
+export class CatalogoComponent implements OnInit, OnDestroy {
   private productoSvc = inject(ProductoService);
   private categoriaSvc = inject(CategoriaService);
   private checkoutSvc = inject(CheckoutService);
@@ -150,6 +211,25 @@ export class CatalogoComponent implements OnInit {
   total = signal(0);
   pagina = signal(1);
   ultimaPagina = signal(1);
+
+  // Mini carrusel del banner
+  destacados = signal<Producto[]>([]);
+  private idx = signal(0);
+  private timer?: ReturnType<typeof setInterval>;
+
+  visibles = computed(() => {
+    const list = this.destacados();
+    const n = list.length;
+    if (n === 0) return [];
+    const i = this.idx();
+    if (n === 1) return [{ p: list[0], pos: 'center' }];
+    if (n === 2) return [{ p: list[i % 2], pos: 'center' }, { p: list[(i + 1) % 2], pos: 'next' }];
+    return [
+      { p: list[(i - 1 + n) % n], pos: 'prev' },
+      { p: list[i % n], pos: 'center' },
+      { p: list[(i + 1) % n], pos: 'next' },
+    ];
+  });
 
   buscar = '';
   categoriaId?: number;
@@ -174,6 +254,48 @@ export class CatalogoComponent implements OnInit {
       error: () => this.categorias.set([]),
     });
     this.cargar();
+    this.cargarDestacados();
+  }
+
+  ngOnDestroy(): void {
+    this.pausar();
+  }
+
+  private cargarDestacados(): void {
+    this.productoSvc.listarPublico({ per_page: 12, ordenar: 'recientes' }).subscribe({
+      next: (res) => {
+        const conImagen = (res.data ?? []).filter((p) => !!this.imagenUrl(p));
+        this.destacados.set(conImagen.slice(0, 6));
+        this.reanudar();
+      },
+      error: () => this.destacados.set([]),
+    });
+  }
+
+  imagenUrl(p: Producto): string {
+    const x = p as any;
+    const img = x.imagen_principal ?? x.imagenes?.find((i: any) => i.es_principal) ?? x.imagenes?.[0];
+    if (typeof img === 'string') return img;
+    return img?.url_cloudflare_s3 ?? img?.url ?? x.imagen_url ?? x.imagen ?? '';
+  }
+
+  mover(delta: number): void {
+    const n = this.destacados().length;
+    if (n < 2) return;
+    this.idx.update((i) => (i + delta + n) % n);
+  }
+
+  pausar(): void {
+    if (this.timer) {
+      clearInterval(this.timer);
+      this.timer = undefined;
+    }
+  }
+
+  reanudar(): void {
+    this.pausar();
+    if (typeof window === 'undefined' || this.destacados().length < 2) return;
+    this.timer = setInterval(() => this.mover(1), 4000);
   }
 
   waGenerico(): string {
@@ -188,6 +310,15 @@ export class CatalogoComponent implements OnInit {
   onFiltro(): void {
     this.pagina.set(1);
     this.cargar();
+  }
+
+  seleccionarCategoria(id?: number): void {
+    this.categoriaId = id;
+    this.onFiltro();
+  }
+
+  irAProductos(): void {
+    document.getElementById('productos')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   toggleFiltros(): void {
