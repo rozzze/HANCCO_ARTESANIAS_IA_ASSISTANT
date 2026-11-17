@@ -1,4 +1,4 @@
-import { Component, ChangeDetectionStrategy, OnInit, inject, signal, Input } from '@angular/core';
+import { Component, ChangeDetectionStrategy, OnInit, inject, signal, computed, Input } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute, RouterLink } from '@angular/router';
@@ -26,9 +26,24 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
             <div class="gallery">
               @if (imagenActiva(); as img) {
                 <div class="main-img">
-                  <img [src]="img.url_cloudflare_s3" [alt]="p.nombre" fetchpriority="high" decoding="async">
+                  <img class="main-img__backdrop" [src]="img.url_cloudflare_s3" alt="" aria-hidden="true" decoding="async">
+                  <img class="main-img__photo" [src]="img.url_cloudflare_s3" [alt]="p.nombre" fetchpriority="high" decoding="async">
+
                   @if (img.generada_ia) {
-                    <span class="badge-ia">✨ Mejorada con IA</span>
+                    <span class="badge-ia">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></svg>
+                      Mejorada con IA
+                    </span>
+                  }
+
+                  @if (imagenes().length > 1) {
+                    <button type="button" class="nav-btn nav-btn--prev" (click)="mover(-1)" aria-label="Foto anterior">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 18l-6-6 6-6"/></svg>
+                    </button>
+                    <button type="button" class="nav-btn nav-btn--next" (click)="mover(1)" aria-label="Foto siguiente">
+                      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 6l6 6-6 6"/></svg>
+                    </button>
+                    <span class="counter" aria-live="polite">{{ indiceActivo() + 1 }} / {{ imagenes().length }}</span>
                   }
                 </div>
               } @else {
@@ -37,13 +52,16 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
 
               @if (imagenes().length > 1) {
                 <div class="thumbs">
-                  @for (img of imagenes(); track img.id) {
+                  @for (img of imagenes(); track img.id; let i = $index) {
                     <button
+                      type="button"
                       class="thumb-btn"
                       [class.active]="imagenActiva()?.id === img.id"
+                      [attr.aria-current]="imagenActiva()?.id === img.id ? 'true' : null"
+                      [attr.aria-label]="'Ver foto ' + (i + 1) + ' de ' + imagenes().length"
                       (click)="imagenActiva.set(img)"
                     >
-                      <img [src]="img.url_cloudflare_s3" [alt]="p.nombre" loading="lazy" decoding="async">
+                      <img [src]="img.url_cloudflare_s3" alt="" loading="lazy" decoding="async">
                     </button>
                   }
                 </div>
@@ -56,9 +74,20 @@ import { Producto, ProductoTalla, Imagen } from '../../core/models/producto.mode
 
               <div class="price">S/ {{ p.precio_venta | number:'1.2-2' }}</div>
 
-              <div class="alert alert-info aviso-ref">
-                💬 Los precios, tallas y disponibilidad son <strong>referenciales</strong> y pueden
-                variar. Te recomendamos confirmarlos por WhatsApp antes de tu compra.
+              <div class="aviso-ref" role="note">
+                <svg class="aviso-ref__icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><path d="M12 7.5v.01"/>
+                </svg>
+                <p>
+                  Los precios, tallas y disponibilidad son <strong>referenciales</strong> y pueden
+                  variar. Te recomendamos
+                  @if (waLink()) {
+                    <a [href]="waLink()" target="_blank" rel="noopener noreferrer">confirmarlos por WhatsApp</a>
+                  } @else {
+                    confirmarlos por WhatsApp
+                  }
+                  antes de tu compra.
+                </p>
               </div>
 
               <div class="attrs">
@@ -182,6 +211,18 @@ export class ProductoDetalleComponent implements OnInit {
       },
       error: () => this.loading.set(false),
     });
+  }
+
+  indiceActivo = computed(() => {
+    const activa = this.imagenActiva();
+    return Math.max(0, this.imagenes().findIndex((i) => i.id === activa?.id));
+  });
+
+  mover(delta: number): void {
+    const lista = this.imagenes();
+    if (lista.length < 2) return;
+    const siguiente = (this.indiceActivo() + delta + lista.length) % lista.length;
+    this.imagenActiva.set(lista[siguiente]);
   }
 
   seleccionarTalla(t: ProductoTalla): void {
