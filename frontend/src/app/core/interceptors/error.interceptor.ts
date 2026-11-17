@@ -16,8 +16,9 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
       if (error.status === 0) {
         toast.error('No hay conexion con el servidor. Verifica tu internet.');
       } else if (error.status === 401 && !esAuthPublica && auth.isLoggedIn()) {
-        toast.warning('Tu sesion expiro. Inicia sesion de nuevo.');
-        auth.logout('/auth/login');
+        // El backend ya no acepta el token (vencio o fue anulado):
+        // lo borramos del navegador y mandamos al login.
+        auth.expirarSesion('Tu sesion expiro. Inicia sesion de nuevo.');
       } else if (error.status >= 500) {
         toast.error('Error en el servidor. Intenta de nuevo.');
       }

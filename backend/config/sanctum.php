@@ -12,7 +12,9 @@ return [
 
     'guard' => ['web'],
 
-    'expiration' => null,
+    // Minutos que dura un token antes de vencer (8 horas por defecto).
+    // Si se pone 0, el token no vence nunca.
+    'expiration' => (int) env('SANCTUM_TOKEN_EXPIRATION', 480) ?: null,
 
     'token_prefix' => env('SANCTUM_TOKEN_PREFIX', ''),
 

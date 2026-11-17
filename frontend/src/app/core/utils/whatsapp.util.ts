@@ -5,6 +5,14 @@ export interface ConsultaOpciones {
   cantidad?: number;
 }
 
+/** Link de WhatsApp con un saludo general (para el landing, sin producto). */
+export function buildSaludoLink(numero: string): string {
+  const limpio = (numero ?? '').replace(/\D/g, '');
+  if (!limpio) return '';
+  const texto = 'Hola Hancco Artesanias! Vi su pagina web y quiero consultar por sus prendas.';
+  return `https://wa.me/${limpio}?text=${encodeURIComponent(texto)}`;
+}
+
 export function buildConsultaLink(producto: Producto, numero: string, opts: ConsultaOpciones = {}): string {
   const limpio = (numero ?? '').replace(/\D/g, '');
   if (!limpio) return '';

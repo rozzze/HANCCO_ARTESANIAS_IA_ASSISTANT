@@ -33,7 +33,7 @@ class AuthController extends Controller
             'direccion' => $data['direccion'] ?? null,
         ]);
 
-        $token = $usuario->createToken('spa')->plainTextToken;
+        $token = $this->crearToken($usuario);
 
         return response()->json([
             'message' => 'Registro exitoso.',
@@ -59,7 +59,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        $token = $usuario->createToken('spa')->plainTextToken;
+        $token = $this->crearToken($usuario);
 
         return response()->json([
             'message' => 'Bienvenido.',
@@ -136,5 +136,22 @@ class AuthController extends Controller
         return response()->json([
             'message' => 'Contrasena actualizada. Ya puedes ingresar con tu nueva contrasena.',
         ]);
+    }
+
+    /**
+     * Crea un token nuevo para el usuario y, de paso, borra sus tokens ya
+     * vencidos para que la tabla personal_access_tokens no crezca sin fin.
+     */
+    private function crearToken(Usuario $usuario): string
+    {
+        $minutos = config('sanctum.expiration');
+
+        if ($minutos) {
+            $usuario->tokens()
+                ->where('created_at', '<', now()->subMinutes($minutos))
+                ->delete();
+        }
+
+        return $usuario->createToken('spa')->plainTextToken;
     }
 }

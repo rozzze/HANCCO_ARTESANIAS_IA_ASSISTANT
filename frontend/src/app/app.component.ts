@@ -4,6 +4,7 @@ import { filter } from 'rxjs/operators';
 import { HeaderComponent } from './shared/components/header/header.component';
 import { FooterComponent } from './shared/components/footer/footer.component';
 import { ToastComponent } from './shared/components/toast/toast.component';
+import { InactividadService } from './core/services/inactividad.service';
 
 @Component({
   selector: 'app-root',
@@ -32,6 +33,9 @@ export class AppComponent {
   esAdmin = computed(() => this.url().startsWith('/admin'));
 
   constructor() {
+    // Cierra la sesion sola tras 30 minutos sin actividad.
+    inject(InactividadService).iniciar();
+
     this.router.events
       .pipe(filter((e) => e instanceof NavigationEnd))
       .subscribe((e) => this.url.set((e as NavigationEnd).urlAfterRedirects));

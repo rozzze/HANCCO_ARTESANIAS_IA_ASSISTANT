@@ -47,7 +47,10 @@ import { buildConsultaLink } from '../../../core/utils/whatsapp.util';
               rel="noopener noreferrer"
               title="Consultar por WhatsApp"
             >
-              💬 Consultar
+              <svg class="wa-ico" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M4 20l1.3-3.9A8 8 0 1 1 8 19.1L4 20zM9 8.5c0 3.5 3 6.5 6.5 6.5l1-1.6-2-1-1 1a5 5 0 0 1-2.9-2.9l1-1-1-2L9 8.5z"/>
+              </svg>
+              Consultar
             </a>
           </div>
         }

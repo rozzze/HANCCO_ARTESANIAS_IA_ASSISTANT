@@ -34,8 +34,11 @@ import { ToastService } from '../../../core/services/toast.service';
         </nav>
 
         <div class="actions">
-          <a routerLink="/carrito" class="cart-btn" title="Mi carrito">
-            <span class="cart-icon">🛒</span>
+          <a routerLink="/carrito" class="cart-btn" title="Mi carrito" aria-label="Mi carrito">
+            <svg class="cart-icon" viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M3 4h2l2.2 10.2a1.5 1.5 0 0 0 1.5 1.2h8.6a1.5 1.5 0 0 0 1.5-1.1L20.5 8H6.2"/>
+              <circle cx="9.5" cy="19.5" r="1.3"/><circle cx="17" cy="19.5" r="1.3"/>
+            </svg>
             @if (cantidadCarrito() > 0) {
               <span class="cart-badge">{{ cantidadCarrito() }}</span>
             }

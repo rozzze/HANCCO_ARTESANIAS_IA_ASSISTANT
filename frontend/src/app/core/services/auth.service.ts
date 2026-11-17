@@ -1,12 +1,16 @@
 import { Injectable, signal, computed } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Router } from '@angular/router';
 import { Observable, tap } from 'rxjs';
 import { environment } from '../../../environments/environment';
 import { AuthResponse, Usuario } from '../models/usuario.model';
+import { ToastService } from './toast.service';
 
 const TOKEN_KEY = 'hancco_token';
 const USER_KEY = 'hancco_user';
+/** Momento (en ms) de la ultima actividad del usuario; lo comparten todas las pestañas. */
+export const ACTIVITY_KEY = 'hancco_last_activity';
+export const AUTH_STORAGE_KEYS = { token: TOKEN_KEY, user: USER_KEY };
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -20,7 +24,11 @@ export class AuthService {
   readonly isLoggedIn = computed(() => this._token() !== null);
   readonly isAdmin = computed(() => this._usuario()?.rol === 'admin');
 
-  constructor(private http: HttpClient, private router: Router) {}
+  constructor(
+    private http: HttpClient,
+    private router: Router,
+    private toast: ToastService,
+  ) {}
 
   register(data: {
     nombres: string;
@@ -41,15 +49,75 @@ export class AuthService {
       .pipe(tap((res) => this.guardarSesion(res)));
   }
 
-  logout(redirectTo = '/'): void {
-    if (!this.isLoggedIn()) {
-      this.limpiarSesion(redirectTo);
-      return;
+  /**
+   * Cierra la sesion: borra el token del navegador al instante y luego le
+   * avisa al backend para que anule ese token (si falla, no importa).
+   */
+  logout(redirectTo = '/', queryParams?: Record<string, string>): void {
+    const token = this._token();
+    this.cerrarSesionLocal(redirectTo, queryParams);
+    if (token) {
+      this.http
+        .post(`${this.apiUrl}/auth/logout`, {}, {
+          headers: new HttpHeaders({ Authorization: `Bearer ${token}` }),
+        })
+        .subscribe({ error: () => {} });
     }
-    this.http.post(`${this.apiUrl}/auth/logout`, {}).subscribe({
-      complete: () => this.limpiarSesion(redirectTo),
-      error: () => this.limpiarSesion(redirectTo),
-    });
+  }
+
+  /**
+   * Borra la sesion solo en el navegador (sin llamar al backend). Se usa
+   * cuando el token ya no sirve: vencio, fue anulado o hubo inactividad.
+   */
+  cerrarSesionLocal(redirectTo = '/', queryParams?: Record<string, string>): void {
+    localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(USER_KEY);
+    this._token.set(null);
+    this._usuario.set(null);
+    this.router.navigate([redirectTo], { queryParams });
+  }
+
+  /**
+   * La sesion termino sin que el usuario pulsara "Salir" (inactividad o token
+   * vencido): avisa con un toast y lleva al login, recordando la pagina actual
+   * para volver a ella despues de ingresar.
+   * - revocar = true: ademas avisa al backend para anular el token.
+   */
+  expirarSesion(mensaje: string, revocar = false): void {
+    if (!this.isLoggedIn()) return;
+    const queryParams = this.paramsRegreso();
+    this.toast.warning(mensaje);
+    if (revocar) {
+      this.logout('/auth/login', queryParams);
+    } else {
+      this.cerrarSesionLocal('/auth/login', queryParams);
+    }
+  }
+
+  /** Lleva al login recordando la pagina actual. */
+  irAlLogin(): void {
+    this.router.navigate(['/auth/login'], { queryParams: this.paramsRegreso() });
+  }
+
+  irAlInicio(): void {
+    this.router.navigate(['/']);
+  }
+
+  private paramsRegreso(): Record<string, string> | undefined {
+    const actual = this.router.url;
+    return actual.startsWith('/auth') ? undefined : { redirect: actual };
+  }
+
+  /**
+   * Otra pestaña inicio o cerro sesion: copiamos ese estado en esta pestaña.
+   * Devuelve true si esta pestaña perdio la sesion.
+   */
+  sincronizarDesdeStorage(): boolean {
+    const token = localStorage.getItem(TOKEN_KEY);
+    const teniaSesion = this._token() !== null;
+    this._token.set(token);
+    this._usuario.set(token ? this.cargarUsuario() : null);
+    return teniaSesion && token === null;
   }
 
   me(): Observable<{ data: Usuario }> {
@@ -74,16 +142,9 @@ export class AuthService {
   private guardarSesion(res: AuthResponse): void {
     localStorage.setItem(TOKEN_KEY, res.data.token);
     localStorage.setItem(USER_KEY, JSON.stringify(res.data.usuario));
+    localStorage.setItem(ACTIVITY_KEY, String(Date.now()));
     this._token.set(res.data.token);
     this._usuario.set(res.data.usuario);
-  }
-
-  private limpiarSesion(redirectTo = '/'): void {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(USER_KEY);
-    this._token.set(null);
-    this._usuario.set(null);
-    this.router.navigate([redirectTo]);
   }
 
   private cargarUsuario(): Usuario | null {

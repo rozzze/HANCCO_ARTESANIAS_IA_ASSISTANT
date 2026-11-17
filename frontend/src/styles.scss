@@ -326,6 +326,18 @@ textarea.form-control { min-height: 90px; resize: vertical; }
 }
 .spinner-lg { width: 32px; height: 32px; border-width: 3px; }
 
+/* === Aparicion al hacer scroll (directiva appReveal) === */
+.reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
+  transition-delay: var(--reveal-delay, 0ms);
+}
+.reveal.is-visible {
+  opacity: 1;
+  transform: none;
+}
+
 /* === Accesibilidad: respetar prefers-reduced-motion === */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
