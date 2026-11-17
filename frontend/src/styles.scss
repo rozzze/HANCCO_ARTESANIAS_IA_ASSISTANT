@@ -327,13 +327,13 @@ textarea.form-control { min-height: 90px; resize: vertical; }
 .spinner-lg { width: 32px; height: 32px; border-width: 3px; }
 
 /* === Aparicion al hacer scroll (directiva appReveal) === */
-.reveal {
+.hv-reveal {
   opacity: 0;
   transform: translateY(18px);
   transition: opacity 0.8s cubic-bezier(0.16, 1, 0.3, 1), transform 0.8s cubic-bezier(0.16, 1, 0.3, 1);
   transition-delay: var(--reveal-delay, 0ms);
 }
-.reveal.is-visible {
+.hv-reveal.hv-visible {
   opacity: 1;
   transform: none;
 }

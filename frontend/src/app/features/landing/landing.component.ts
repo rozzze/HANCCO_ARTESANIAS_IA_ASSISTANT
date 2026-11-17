@@ -50,13 +50,19 @@ import { RevealDirective } from '../../shared/directives/reveal.directive';
 
           <div class="hero-stage">
             <div class="arch-ghost" aria-hidden="true"></div>
+            <!-- El arco siempre existe (no se reemplaza al llegar los datos), asi no se anima dos veces -->
+            <div class="arch" [class.is-loaded]="fotoLista()">
+              <span class="arch-window">
+                @if (destacado(); as p) {
+                  <a [routerLink]="['/producto', p.id]" class="arch-link" [attr.aria-label]="'Ver ' + p.nombre">
+                    <img class="arch-backdrop" [src]="p.imagen_principal_url" alt="" aria-hidden="true" decoding="async">
+                    <img class="arch-photo" [src]="p.imagen_principal_url" [alt]="p.nombre" decoding="async"
+                         fetchpriority="high" (load)="fotoLista.set(true)" (error)="fotoLista.set(true)">
+                  </a>
+                }
+              </span>
+            </div>
             @if (destacado(); as p) {
-              <a [routerLink]="['/producto', p.id]" class="arch" [attr.aria-label]="'Ver ' + p.nombre">
-                <span class="arch-window">
-                  <img class="arch-backdrop" [src]="p.imagen_principal_url" alt="" aria-hidden="true" decoding="async">
-                  <img class="arch-photo" [src]="p.imagen_principal_url" [alt]="p.nombre" decoding="async" fetchpriority="high">
-                </span>
-              </a>
               @if (esFotoIA(p)) {
                 <span class="arch-ia">
                   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8L19 15z"/></svg>
@@ -68,10 +74,6 @@ import { RevealDirective } from '../../shared/directives/reveal.directive';
                 <span class="arch-tag-name">{{ p.nombre | titlecase }}</span>
                 <span class="arch-tag-price">S/ {{ p.precio_venta | number:'1.2-2' }}</span>
               </a>
-            } @else {
-              <div class="arch arch--loading" aria-hidden="true">
-                <span class="arch-window"></span>
-              </div>
             }
           </div>
         </div>
@@ -192,6 +194,9 @@ export class LandingComponent implements OnInit {
   productos = signal<Producto[]>([]);
   categorias = signal<Categoria[]>([]);
   loading = signal(true);
+
+  /** True cuando la foto del arco termino de descargarse (para mostrarla suave, una sola vez). */
+  fotoLista = signal(false);
 
   /** Prenda que se muestra en el arco del hero: la mas reciente con foto. */
   destacado = computed(() => this.productos().find((p) => !!p.imagen_principal_url) ?? null);

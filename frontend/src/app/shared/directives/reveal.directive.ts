@@ -26,19 +26,19 @@ export class RevealDirective implements OnInit, OnDestroy {
       return;
     }
 
-    node.classList.add('reveal');
+    node.classList.add('hv-reveal');
     if (this.revealDelay) node.style.setProperty('--reveal-delay', `${this.revealDelay}ms`);
 
     this.observer = new IntersectionObserver(
       (entries) => {
         for (const entry of entries) {
           if (entry.isIntersecting) {
-            node.classList.add('is-visible');
+            node.classList.add('hv-visible');
             this.observer?.disconnect();
           }
         }
       },
-      { threshold: 0.15, rootMargin: '0px 0px -40px 0px' }
+      { threshold: 0.08, rootMargin: '0px 0px -40px 0px' }
     );
     this.observer.observe(node);
   }
