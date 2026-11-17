@@ -27,6 +27,8 @@ Route::prefix('auth')->group(function () {
     Route::middleware('auth:sanctum')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
+        Route::put('perfil', [AuthController::class, 'actualizarPerfil']);
+        Route::put('perfil/contrasena', [AuthController::class, 'cambiarContrasena'])->middleware('throttle:6,1');
     });
 });
 

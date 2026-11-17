@@ -10,7 +10,9 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
+use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Password as PasswordRule;
+use Illuminate\Validation\ValidationException;
 
 class AuthController extends Controller
 {
@@ -84,6 +86,93 @@ class AuthController extends Controller
         return response()->json([
             'data' => new UsuarioResource($request->user()),
         ]);
+    }
+
+    /**
+     * El usuario logueado actualiza SUS propios datos (nunca el rol).
+     * Siempre usa $request->user(): no recibe un id, asi nadie puede
+     * editar el perfil de otra persona por esta ruta.
+     */
+    public function actualizarPerfil(Request $request): JsonResponse
+    {
+        $usuario = $request->user();
+
+        $data = $request->validate([
+            'nombres' => ['required', 'string', 'min:2', 'max:120'],
+            'correo' => ['required', 'string', 'email', 'max:180', Rule::unique('usuarios', 'correo')->ignore($usuario->id)],
+            'telefono' => ['nullable', 'string', 'max:30'],
+            'direccion' => ['nullable', 'string', 'max:255'],
+        ], self::mensajesUsuario());
+
+        $data['correo'] = mb_strtolower(trim($data['correo']));
+        $usuario->update($data);
+
+        return response()->json([
+            'message' => 'Tus datos se guardaron correctamente.',
+            'data' => new UsuarioResource($usuario->fresh()),
+        ]);
+    }
+
+    /**
+     * Cambia la contrasena del usuario logueado pidiendo la actual.
+     * Cierra las demas sesiones (otros dispositivos), pero no la actual.
+     */
+    public function cambiarContrasena(Request $request): JsonResponse
+    {
+        $usuario = $request->user();
+
+        $data = $request->validate([
+            'contrasena_actual' => ['required', 'string'],
+            'contrasena' => ['required', 'confirmed', PasswordRule::min(8)],
+        ], self::mensajesUsuario() + [
+            'contrasena_actual.required' => 'Escribe tu contraseña actual.',
+        ]);
+
+        // 422 (y no 401) para que el frontend no lo confunda con sesion vencida.
+        if (!Hash::check($data['contrasena_actual'], $usuario->contrasena)) {
+            throw ValidationException::withMessages([
+                'contrasena_actual' => 'La contraseña actual no es correcta.',
+            ]);
+        }
+
+        if (Hash::check($data['contrasena'], $usuario->contrasena)) {
+            throw ValidationException::withMessages([
+                'contrasena' => 'La nueva contraseña debe ser distinta a la actual.',
+            ]);
+        }
+
+        $usuario->update(['contrasena' => $data['contrasena']]);
+
+        $tokenActual = $usuario->currentAccessToken();
+        $usuario->tokens()
+            ->when($tokenActual?->id, fn ($q, $id) => $q->where('id', '!=', $id))
+            ->delete();
+
+        return response()->json([
+            'message' => 'Tu contraseña se cambió correctamente.',
+        ]);
+    }
+
+    /**
+     * Mensajes en espanol para los campos de usuario (los reusa el admin).
+     */
+    public static function mensajesUsuario(): array
+    {
+        return [
+            'nombres.required' => 'Escribe tus nombres.',
+            'nombres.min' => 'Los nombres deben tener al menos 2 letras.',
+            'nombres.max' => 'Los nombres no pueden pasar de 120 caracteres.',
+            'correo.required' => 'Escribe un correo.',
+            'correo.email' => 'El correo no tiene un formato válido.',
+            'correo.max' => 'El correo no puede pasar de 180 caracteres.',
+            'correo.unique' => 'Ese correo ya lo usa otra cuenta.',
+            'telefono.max' => 'El teléfono no puede pasar de 30 caracteres.',
+            'direccion.max' => 'La dirección no puede pasar de 255 caracteres.',
+            'rol.in' => 'El rol debe ser admin o cliente.',
+            'contrasena.required' => 'Escribe la nueva contraseña.',
+            'contrasena.confirmed' => 'Las contraseñas nuevas no coinciden.',
+            'contrasena.min' => 'La contraseña debe tener al menos 8 caracteres.',
+        ];
     }
 
     public function forgotPassword(Request $request): JsonResponse

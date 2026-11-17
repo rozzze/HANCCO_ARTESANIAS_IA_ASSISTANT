@@ -126,6 +126,32 @@ export class AuthService {
       .pipe(tap((res) => this._usuario.set(res.data)));
   }
 
+  /** Guarda los datos del propio usuario y refresca el header al instante. */
+  actualizarPerfil(data: {
+    nombres: string;
+    correo: string;
+    telefono: string | null;
+    direccion: string | null;
+  }): Observable<{ message: string; data: Usuario }> {
+    return this.http
+      .put<{ message: string; data: Usuario }>(`${this.apiUrl}/auth/perfil`, data)
+      .pipe(tap((res) => this.actualizarUsuarioLocal(res.data)));
+  }
+
+  cambiarContrasena(data: {
+    contrasena_actual: string;
+    contrasena: string;
+    contrasena_confirmation: string;
+  }): Observable<{ message: string }> {
+    return this.http.put<{ message: string }>(`${this.apiUrl}/auth/perfil/contrasena`, data);
+  }
+
+  /** Actualiza el usuario guardado (signal + localStorage) sin tocar el token. */
+  actualizarUsuarioLocal(usuario: Usuario): void {
+    localStorage.setItem(USER_KEY, JSON.stringify(usuario));
+    this._usuario.set(usuario);
+  }
+
   solicitarRecuperacion(correo: string): Observable<{ message: string }> {
     return this.http.post<{ message: string }>(`${this.apiUrl}/auth/forgot-password`, { correo });
   }

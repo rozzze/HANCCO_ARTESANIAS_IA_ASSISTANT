@@ -62,6 +62,11 @@ export const routes: Routes = [
     loadComponent: () => import('./features/pedidos/pedido-detalle.component').then((m) => m.PedidoDetalleComponent),
   },
   {
+    path: 'mi-perfil',
+    canActivate: [authGuard],
+    loadComponent: () => import('./features/perfil/mi-perfil.component').then((m) => m.MiPerfilComponent),
+  },
+  {
     path: 'admin',
     canActivate: [adminGuard],
     loadComponent: () => import('./features/admin/dashboard/dashboard.component').then((m) => m.DashboardComponent),

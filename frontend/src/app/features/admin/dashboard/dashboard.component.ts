@@ -61,13 +61,13 @@ interface NavSection {
         </nav>
 
         <div class="sidebar-foot">
-          <div class="user-chip">
+          <a routerLink="/mi-perfil" class="user-chip user-chip-link" title="Ver y editar mi perfil" (click)="cerrarDrawer()">
             <span class="user-avatar">{{ iniciales() }}</span>
             <span class="user-meta">
               <strong>{{ nombreUsuario() }}</strong>
-              <small>Administrador</small>
+              <small>Mi perfil</small>
             </span>
-          </div>
+          </a>
           <a routerLink="/" class="btn btn-secondary btn-sm btn-block" (click)="cerrarDrawer()">🛍️ Ver tienda</a>
           <button class="btn btn-logout btn-sm btn-block" (click)="logout()">Cerrar sesion</button>
         </div>

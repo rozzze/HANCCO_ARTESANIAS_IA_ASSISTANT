@@ -46,7 +46,12 @@ import { ToastService } from '../../../core/services/toast.service';
 
           @if (isLoggedIn()) {
             <div class="user-menu">
-              <span class="user-name">Hola, {{ usuario()?.nombres?.split(' ')?.[0] }}</span>
+              <a routerLink="/mi-perfil" routerLinkActive="active" class="user-name user-link" title="Mi perfil">
+                <svg class="user-icon" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle cx="12" cy="8.5" r="3.6"/><path d="M4.8 20a7.2 7.2 0 0 1 14.4 0"/>
+                </svg>
+                <span>Hola, {{ usuario()?.nombres?.split(' ')?.[0] }}</span>
+              </a>
               <button class="btn btn-secondary btn-sm" (click)="logout()">Salir</button>
             </div>
           } @else {

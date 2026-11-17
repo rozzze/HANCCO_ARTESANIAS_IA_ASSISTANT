@@ -205,6 +205,29 @@
     color: var(--hv-ink);
     font-weight: 500;
   }
+
+  .user-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.75rem 0.35rem 0.5rem;
+    border-radius: 999px;
+    text-decoration: none;
+    transition: background 0.2s ease, color 0.2s ease;
+
+    &:hover, &.active { background: rgba(63, 91, 69, 0.12); color: var(--hv-green-dark, #2a3f30); }
+    &:focus-visible { outline: 2px solid var(--hv-terra, #b8502f); outline-offset: 2px; }
+  }
+
+  .user-icon {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+    stroke-linecap: round;
+  }
 }
 
 .btn-sm {
@@ -245,7 +268,9 @@
   .brand .brand-mark::before { font-size: 1.25rem; }
   .brand .brand-name { font-size: 1.25rem; }
   .brand .brand-tag { display: none; }
-  .user-name { display: none; }
+  .user-link { padding: 0; width: 38px; height: 38px; justify-content: center; }
+  .user-link span { display: none; }
+  .user-link .user-icon { width: 20px; height: 20px; }
   .cart-btn { width: 38px; height: 38px; font-size: 1rem; }
 }
 

@@ -22,7 +22,10 @@ export class UsuarioService {
     return this.http.get<ApiResponse<Usuario>>(`${this.apiUrl}/admin/usuarios/${id}`);
   }
 
-  actualizar(id: number, data: Partial<Usuario>): Observable<ApiResponse<Usuario>> {
+  actualizar(
+    id: number,
+    data: Partial<Usuario> & { contrasena?: string; contrasena_confirmation?: string },
+  ): Observable<ApiResponse<Usuario>> {
     return this.http.put<ApiResponse<Usuario>>(`${this.apiUrl}/admin/usuarios/${id}`, data);
   }
 
