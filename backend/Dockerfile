@@ -21,8 +21,9 @@ RUN composer install --no-dev --no-interaction --prefer-dist --no-scripts --no-a
 # 2) Codigo de la aplicacion.
 COPY --chown=www-data:www-data . .
 
+# Git no guarda carpetas vacias: se crean aqui para que "php artisan optimize" no falle.
 RUN mkdir -p storage/framework/cache/data storage/framework/sessions storage/framework/views \
-        storage/logs bootstrap/cache \
+        storage/logs bootstrap/cache resources/views \
     && composer dump-autoload --optimize --no-dev
 
 EXPOSE 8080
